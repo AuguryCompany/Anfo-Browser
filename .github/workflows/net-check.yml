@@ -1,19 +1,31 @@
 name: Uç nokta kontrolü
 
-# Piyasa / haber widget'larının dış kaynaklarını hızlıca dener (model testinden bağımsız, ~30 sn).
+# Piyasa / haber widget'larının dış kaynaklarını dener ve widget'ları canlı veriyle çalıştırır (~2 dk).
 on:
   push:
-    paths: ['e2e/net-check.cjs', 'e2e/cnbc-shape.cjs', 'src/features/market.js', '.github/workflows/net-check.yml']
+    paths: ['e2e/net-check.cjs', 'e2e/widgets-live.cjs', 'src/features/market.js', 'src/features/Market.jsx', 'src/features/News.jsx', '.github/workflows/net-check.yml']
   workflow_dispatch:
 
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
-      - run: node e2e/cnbc-shape.cjs
-      - run: node e2e/net-check.cjs
+          cache: npm
+      - name: Uç noktalar
+        continue-on-error: true
+        run: node e2e/net-check.cjs
+      - run: npm ci && npm run build
+      - name: Playwright
+        run: |
+          npm i --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Widget'lar canlı veriyle
+        run: |
+          npx vite preview --port 4173 &
+          sleep 3
+          node e2e/widgets-live.cjs http://localhost:4173

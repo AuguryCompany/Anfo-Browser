@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Settings2, Plus, X, Search, RotateCcw } from 'lucide-react'
 import { useStore, setSetting, navigate } from '../store'
-import { quote, searchSymbols, RANGES, DEFAULT_ITEMS, money, pct } from './market'
+import { loadQuotes, searchSymbols, RANGES, DEFAULT_ITEMS, money, pct } from './market'
 import { isNative } from '../native'
 
 // Piyasa widget'ı: seçilen hisse/fon/endeksler. Her biri küçük (satır + mini çizgi) ya da grafikli (büyük grafik).
@@ -17,12 +17,10 @@ function useQuotes(syms, range) {
     const ac = new AbortController()
     const load = () => {
       if (document.hidden) return
-      Promise.allSettled(syms.map((s) => quote(s, range, ac.signal))).then((rs) => {
+      loadQuotes(syms, range, ac.signal).then((next) => {
         if (!alive) return
-        const next = {}
-        rs.forEach((r, i) => r.status === 'fulfilled' && (next[syms[i]] = r.value))
         setData(next)
-        setErr(rs.every((r) => r.status === 'rejected') && syms.length ? 'Piyasa verisi alınamadı.' : '')
+        setErr(syms.length && !Object.keys(next).length ? 'Piyasa verisi alınamadı.' : '')
       })
     }
     load()
@@ -218,8 +216,14 @@ export default function Market() {
           {!mine.length && <p className="wg-muted mk-hint">Varsayılan liste · ⚙ ile hisse, fon ya da endeks ekle</p>}
           {items.map((it) => {
             const q = data[it.s]
-            if (!q) return <div key={it.s} className="mk-row mk-wait" aria-busy="true"><b>{it.s}</b></div>
-            const open = () => navigate('https://finance.yahoo.com/quote/' + encodeURIComponent(it.s))
+            if (!q)
+              return (
+                <div key={it.s} className="mk-row mk-wait" aria-busy={!err || undefined}>
+                  <b>{it.s}</b>
+                </div>
+              )
+            const yahoo = /\.IS$|^\^|=/.test(it.s)
+            const open = () => navigate(yahoo ? 'https://finance.yahoo.com/quote/' + encodeURIComponent(it.s) : 'https://www.cnbc.com/quotes/' + encodeURIComponent(it.s))
             // Grafikli kartın içinde aralık düğmeleri olduğu için kartın tamamı düğme değildir (iç içe düğme olmaz).
             return it.big ? (
               <Big key={it.s} q={q} range={range} setRange={setRange} open={open} />
