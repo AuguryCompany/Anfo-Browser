@@ -1,0 +1,29 @@
+name: Yerel AI testi
+
+# Cihazda çalışan modelleri başsız Chromium'da (WASM, telefondaki gibi) indirip çalıştırır.
+on:
+  push:
+    paths: ['src/features/llm.worker.js', 'src/features/local-ai.js', 'e2e/**', '.github/workflows/ai-test.yml']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Playwright
+        run: |
+          npm i --no-save playwright
+          npx playwright install --with-deps chromium
+      - name: Modelleri indir ve çalıştır
+        run: |
+          npx vite preview --port 4173 &
+          sleep 3
+          node e2e/llm-test.cjs http://localhost:4173
