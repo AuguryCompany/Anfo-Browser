@@ -222,6 +222,12 @@ function CloudAi({ s }) {
           </button>
         ))}
       </div>
+      {def.regions && (
+        <div className="field">
+          <span>Bölge</span>
+          <Seg k="aiRegion" value={s.aiRegion} options={Object.fromEntries(Object.entries(def.regions).map(([k, r]) => [k, r.label]))} />
+        </div>
+      )}
       {def.editable && (
         <label className="field">
           <span>
@@ -271,6 +277,7 @@ function CloudAi({ s }) {
           </div>
         </div>
       )}
+      {def.regions && <p>Anahtar yalnızca oluşturulduğu bölgede çalışır: Çin (alibabacloud.com Çin sitesi) ve uluslararası hesaplar ayrıdır.</p>}
       {p === 'azure' && <p>Model yerine Azure portalında oluşturduğun dağıtımın (deployment) adını yaz.</p>}
     </>
   )

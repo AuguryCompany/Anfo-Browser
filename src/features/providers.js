@@ -51,9 +51,11 @@ export const PROVIDERS = {
   alibaba: {
     label: 'Alibaba Cloud',
     logo: 'alibabacloud',
-    base: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
-    editable: true, // anahtar bölgeye bağlıdır: Çin konsolu için https://dashscope.aliyuncs.com/compatible-mode/v1
-    baseHint: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+    // Anahtar oluşturulduğu bölgenin uç noktasında çalışır: Çin konsolu anahtarı uluslararası uçta geçmez, tersi de.
+    regions: {
+      intl: { label: 'Uluslararası', base: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1' },
+      cn: { label: 'Çin', base: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
+    },
     hint: 'sk-…',
     models: ['qwen-plus', 'qwen-turbo', 'qwen-max'],
   },
@@ -78,6 +80,7 @@ const clean = (u) => (u || '').trim().replace(/\/+$/, '')
 // Adres: düzenlenebilir sağlayıcılarda kullanıcının girdiği, yoksa varsayılan. Azure'da kaynak adresine /openai/v1 eklenir.
 export const baseOf = (s, p = providerOf(s)) => {
   const def = PROVIDERS[p]
+  if (def.regions) return (def.regions[s.aiRegion] || Object.values(def.regions)[0]).base
   let u = def.editable ? clean(s.aiBases?.[p]) || clean(def.base) : clean(def.base)
   if (p === 'azure' && u && !/\/openai(\/|$)/.test(u)) u += '/openai/v1'
   return u

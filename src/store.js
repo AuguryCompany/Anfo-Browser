@@ -53,6 +53,7 @@ export const DEFAULT_SETTINGS = {
   aiProvider: 'anthropic', // anthropic | openrouter | openai | gemini | groq | custom
   aiKeys: {}, // sağlayıcı → API anahtarı (yalnızca bu cihazda)
   aiModels: {}, // sağlayıcı → seçili model (boşsa sağlayıcının varsayılanı)
+  aiRegion: 'intl', // Alibaba Cloud bölgesi: intl (uluslararası) | cn (Çin)
   aiBases: {}, // sağlayıcı → adres (Azure, Alibaba Cloud bölgesi, özel OpenAI uyumlu sunucu)
   localModel: '', // seçili ve indirilmiş yerel model (boşsa yerel AI hazır değil)
   // ana sayfa ve görünüm
