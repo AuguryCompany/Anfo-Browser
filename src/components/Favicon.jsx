@@ -3,12 +3,13 @@ import { Globe } from 'lucide-react'
 import { hostOf, useStore } from '../store'
 
 // Site simgeleri çalışma anında ağdan çekilir; pakete gömülü görsel yoktur.
-// settings.favicons === false ise ağ isteği atılmaz; alan adının ilk harfi rozet olarak gösterilir.
+// Gizlilik: varsayılan kapalı. Kapalıyken (settings.favicons !== true) hiçbir ağ isteği atılmaz; alan adının
+// ilk harfi rozet olarak gösterilir. Açıkken simgeler DuckDuckGo'nun simge hizmetinden gelir (site adı ona gider).
 export default function Favicon({ url, size = 16 }) {
   const host = hostOf(url)
   const [bad, setBad] = useState(null)
   const favicons = useStore((s) => s.settings.favicons)
-  if (favicons === false && host)
+  if (favicons !== true && host)
     return (
       <span
         className="fav-letter"

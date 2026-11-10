@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useStore, setSetting, setUi, ENGINES, clearHistory, resetSettings, liveCount, sleepBackground, clearCaches, memoryInfo, exportData, importData } from '../store'
+import { useStore, setSetting, setUi, ENGINES, clearHistory, clearBrowsingData, resetSettings, liveCount, sleepBackground, clearCaches, memoryInfo, exportData, importData } from '../store'
 import { play, SOUND_PACKS } from '../sound'
 import { isNative } from '../native'
 import { ChevronUp, ChevronDown, X } from 'lucide-react'
@@ -132,7 +132,7 @@ function PerfCard({ s, i }) {
           <Seg k="cacheMode" value={s.cacheMode} options={CACHE} />
         </div>
       )}
-      <Toggle k="prewarm" value={s.prewarm} label="Bağlantıları önceden ısıt" hint="üzerine gelince sunucuya erken bağlanır" />
+      <Toggle k="prewarm" value={s.prewarm} label="Bağlantıları önceden ısıt" hint="üzerine gelince sunucuya erken bağlanır; tıklamasan da site IP adresini görür" />
       <p className="links">
         <button
           className="link"
@@ -610,7 +610,7 @@ export default function Settings() {
               k="safeNet"
               value={s.safeNet !== false}
               label="Engelleri aş"
-              hint="şifreli DNS (Cloudflare/Google) ve site adını bölerek gönderme; internet sağlayıcısının DNS/SNI engellerini aşar"
+              hint="şifreli DNS (Quad9, yedek Cloudflare) ve site adını bölerek gönderme; internet sağlayıcın hangi siteleri açtığını DNS’ten göremez, DNS/SNI engelleri aşılır"
             />
           </section>
         ) : (
@@ -774,7 +774,22 @@ export default function Settings() {
           <Toggle k="tabStrip" value={s.tabStrip} label="Tablet/PC sekme şeridi" />
           <Toggle k="toolbar" value={s.toolbar !== false} label="Tablet/PC araç çubuğu" hint="geri, ileri, adres alanı ve menü — Chrome gibi" />
           <Toggle k="bookmarksBar" value={s.bookmarksBar !== false} label="Yer imleri çubuğu" hint="Ctrl+Shift+B" />
-          <Toggle k="favicons" value={s.favicons !== false} label="Site simgeleri" hint="Simgeler DuckDuckGo’dan alınır; kapatırsan baş harf gösterilir" />
+        </section>
+
+        <section className="card" style={{ '--i': i++ }}>
+          <h2>Gizlilik</h2>
+          <Toggle k="thirdPartyCookies" value={!!s.thirdPartyCookies} label="Üçüncü taraf çerezler" hint="kapalıyken siteler seni başka sitelerde izleyemez; bazı girişler ve gömülü oynatıcılar için açman gerekebilir" />
+          <Toggle k="favicons" value={!!s.favicons} label="Site simgeleri" hint="açıkken ziyaret ettiğin site adları DuckDuckGo’nun simge hizmetine gider; kapalıyken baş harf gösterilir" />
+          <Toggle k="clearOnStart" value={!!s.clearOnStart} label="Açılışta tarama verilerini sil" hint="geçmiş, çerezler, önbellek ve site verileri; ayarlar ve sabitler kalır" />
+          <p className="links">
+            <Confirm label="Tarama verilerini şimdi sil" sure="Emin misin? Sil" onConfirm={() => (clearBrowsingData(), play('close'))} />
+          </p>
+          <p>
+            Anfo hiçbir veri toplamaz, analiz ya da hata raporu göndermez. Gizli sekmeler ayrı bir profilde açılır (çerezleri normal
+            sekmelerle paylaşılmaz) ve son gizli sekme kapanınca tümüyle silinir. Sitelere Global Privacy Control (GPC) ve “Do Not Track”
+            sinyali gönderilir. “Engelleri aş” açıkken DNS sorguları şifreli olarak Quad9’a (yedek Cloudflare) gider; internet sağlayıcın
+            hangi siteleri açtığını DNS’ten göremez.
+          </p>
         </section>
 
         <section className="card" style={{ '--i': i++ }}>

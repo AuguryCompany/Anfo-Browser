@@ -10,7 +10,6 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,14 +17,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * "Engelleri as": WebView'larin HTTPS trafigi icin yerel (127.0.0.1) CONNECT vekili.
  *
- *  - Alan adlari DNS-over-HTTPS ile cozulur (Cloudflare 1.1.1.1, yedek Google 8.8.8.8); internet saglayicisinin
- *    DNS engelleri/yonlendirmeleri asilir. DoH ulasilamazsa sistem DNS'ine donulur.
+ *  - Alan adlari DNS-over-HTTPS ile (RFC 8484) cozulur: once Quad9 (kar amaci gutmeyen, IP kaydi tutmaz),
+ *    yedek Cloudflare (24 saatte silinen kayit). Internet saglayicisi hangi siteleri actigini DNS'ten goremez,
+ *    DNS engelleri/yonlendirmeleri asilir. Ikisine de ulasilamazsa sistem DNS'ine donulur.
  *  - TLS'in ilk paketi (ClientHello) site adinin ortasindan iki TCP parcasina bolunerek gonderilir; site adina
  *    bakan basit DPI filtreleri adi goremez. TCP akisi degismedigi icin sunucu farki gormez.
  *
@@ -177,11 +176,11 @@ public final class SafeProxy {
         String key = host.toLowerCase();
         Entry e = cache.get(key);
         if (e != null && e.until > System.currentTimeMillis()) return e.addrs;
-        String[] servers = {"https://1.1.1.1/dns-query?type=A&name=", "https://8.8.8.8/resolve?type=A&name="};
+        String[] servers = {"https://9.9.9.9/dns-query", "https://1.1.1.1/dns-query"};
         for (String srv : servers) {
             try {
                 List<InetAddress> out = new ArrayList<>();
-                int ttl = doh(srv + URLEncoder.encode(key, "UTF-8"), out);
+                int ttl = doh(srv, key, out);
                 if (!out.isEmpty()) {
                     InetAddress[] arr = out.toArray(new InetAddress[0]);
                     cache.put(key, new Entry(arr, System.currentTimeMillis() + Math.max(60, ttl) * 1000L));
@@ -198,38 +197,86 @@ public final class SafeProxy {
         }
     }
 
-    private static final Pattern ANSWER = Pattern.compile("\\{[^{}]*\\}");
-    private static final Pattern TYPE_A = Pattern.compile("\"type\"\\s*:\\s*1\\s*[,}]");
-    private static final Pattern DATA = Pattern.compile("\"data\"\\s*:\\s*\"([0-9.]+)\"");
-    private static final Pattern TTL = Pattern.compile("\"TTL\"\\s*:\\s*(\\d+)");
-
-    /** DNS JSON yanitindaki A kayitlarini ekler; en kucuk TTL'i dondurur. */
-    static int doh(String url, List<InetAddress> out) throws IOException {
-        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection(java.net.Proxy.NO_PROXY);
+    /** RFC 8484 GET: ikili DNS sorgusu base64url ile gonderilir; A kayitlari eklenir, en kucuk TTL dondurulur. */
+    static int doh(String server, String host, List<InetAddress> out) throws IOException {
+        String q = b64url(query(host));
+        HttpURLConnection c = (HttpURLConnection) new URL(server + "?dns=" + q).openConnection(java.net.Proxy.NO_PROXY);
         c.setConnectTimeout(4000);
         c.setReadTimeout(4000);
-        c.setRequestProperty("Accept", "application/dns-json");
+        c.setRequestProperty("Accept", "application/dns-message");
         try (InputStream in = c.getInputStream()) {
-            String body = new String(readAll(in), StandardCharsets.UTF_8);
-            return parseAnswers(body, out);
+            return parse(readAll(in), out);
         } finally {
             c.disconnect();
         }
     }
 
-    static int parseAnswers(String body, List<InetAddress> out) throws IOException {
-        int i = body.indexOf("\"Answer\"");
-        if (i < 0) return 0;
+    private static final char[] B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_".toCharArray();
+
+    /** Dolgusuz base64url (java.util.Base64 Android 8 gerektirir; uygulama Android 7'yi de destekler). */
+    static String b64url(byte[] d) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < d.length; i += 3) {
+            int n = (d[i] & 0xff) << 16 | (i + 1 < d.length ? (d[i + 1] & 0xff) << 8 : 0) | (i + 2 < d.length ? d[i + 2] & 0xff : 0);
+            sb.append(B64[n >> 18 & 63]).append(B64[n >> 12 & 63]);
+            if (i + 1 < d.length) sb.append(B64[n >> 6 & 63]);
+            if (i + 2 < d.length) sb.append(B64[n & 63]);
+        }
+        return sb.toString();
+    }
+
+    /** Tek soruluk A sorgusu (kimlik 0, RD=1; RFC 8484 onbellek dostu olsun diye kimlik 0). */
+    static byte[] query(String host) {
+        ByteArrayOutputStream b = new ByteArrayOutputStream();
+        b.write(0); b.write(0); // kimlik
+        b.write(1); b.write(0); // bayraklar: RD
+        b.write(0); b.write(1); // QDCOUNT
+        for (int i = 0; i < 6; i++) b.write(0); // AN/NS/AR
+        for (String label : host.split("\\.")) {
+            byte[] l = label.getBytes(StandardCharsets.US_ASCII);
+            if (l.length == 0) continue;
+            b.write(l.length);
+            b.write(l, 0, l.length);
+        }
+        b.write(0);
+        b.write(0); b.write(1); // QTYPE A
+        b.write(0); b.write(1); // QCLASS IN
+        return b.toByteArray();
+    }
+
+    private static int u16(byte[] b, int i) {
+        return ((b[i] & 0xff) << 8) | (b[i + 1] & 0xff);
+    }
+
+    /** Ad alanini atlar (etiketler ya da 0xC0 isaretcisi). */
+    private static int skipName(byte[] b, int i) {
+        while (i < b.length) {
+            int len = b[i] & 0xff;
+            if (len == 0) return i + 1;
+            if ((len & 0xc0) == 0xc0) return i + 2;
+            i += len + 1;
+        }
+        return i;
+    }
+
+    static int parse(byte[] b, List<InetAddress> out) throws IOException {
+        if (b.length < 12) return 0;
+        if ((b[3] & 0x0f) != 0) return 0; // RCODE hata
+        int qd = u16(b, 4), an = u16(b, 6);
+        int i = 12;
+        for (int k = 0; k < qd; k++) i = skipName(b, i) + 4;
         int ttl = Integer.MAX_VALUE;
-        Matcher m = ANSWER.matcher(body.substring(i));
-        while (m.find()) {
-            String o = m.group();
-            if (!TYPE_A.matcher(o).find()) continue;
-            Matcher d = DATA.matcher(o);
-            if (!d.find()) continue;
-            out.add(InetAddress.getByName(d.group(1)));
-            Matcher t = TTL.matcher(o);
-            if (t.find()) ttl = Math.min(ttl, Integer.parseInt(t.group(1)));
+        for (int k = 0; k < an && i + 10 <= b.length; k++) {
+            i = skipName(b, i);
+            int type = u16(b, i), rdlen = u16(b, i + 8);
+            long t = ((long) u16(b, i + 4) << 16) | u16(b, i + 6);
+            i += 10;
+            if (i + rdlen > b.length) break;
+            if (type == 1 && rdlen == 4) {
+                out.add(InetAddress.getByAddress(new byte[] {b[i], b[i + 1], b[i + 2], b[i + 3]}));
+                ttl = (int) Math.min(ttl, t);
+            }
+            i += rdlen;
         }
         return ttl == Integer.MAX_VALUE ? 0 : ttl;
     }

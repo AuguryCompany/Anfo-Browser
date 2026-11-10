@@ -24,7 +24,7 @@ export const DEFAULT_SETTINGS = {
   webmcp: true,
   toolbar: true, // tablet/PC Chrome tarzı araç çubuğu
   bookmarksBar: true, // araç çubuğunun altında yer imleri çubuğu
-  favicons: true, // site simgeleri (DuckDuckGo) // WebMCP: tarayıcı yapay zekâ ajanlarına Anfo araçlarını sun
+  favicons: false, // site simgeleri: açıkken ziyaret edilen site adları DuckDuckGo'nun simge hizmetine gider // WebMCP: tarayıcı yapay zekâ ajanlarına Anfo araçlarını sun
   auraStrength: 80,
   grain: 55,
   radius: 26,
@@ -46,6 +46,8 @@ export const DEFAULT_SETTINGS = {
   noImages: false, // veri tasarrufu
   darkPages: false,
   desktop: false,
+  thirdPartyCookies: false, // üçüncü taraf çerezler: kapalıyken siteler arası takip engellenir
+  clearOnStart: false, // uygulama her açıldığında geçmiş, çerezler ve site verileri silinir
   safeNet: true, // engelleri aş: şifreli DNS (DoH) + site adını bölerek gönderme (yerel vekil)
   liveTabs: 4, // aynı anda bellekte tutulan sekme sayısı
   // AI modu
@@ -90,9 +92,9 @@ export const DEFAULT_SETTINGS = {
   perf: 'balanced', // high | balanced | saver
   sleepAfter: 15, // arka plandaki sekmeyi N dakika sonra uyut (0 = asla)
   cacheMode: 'normal', // normal | aggressive | off (Android HTTP önbelleği)
-  prewarm: true, // bağlantıların üzerine gelince sunucuya önceden bağlan
+  prewarm: false, // bağlantıların üzerine gelince sunucuya önceden bağlan (tıklamadan siteye IP gider)
 }
-const NATIVE_KEYS = ['shield', 'shieldOff', 'lite', 'noImages', 'darkPages', 'desktop', 'safeNet', 'builtinExt', 'extensions', 'cacheMode']
+const NATIVE_KEYS = ['shield', 'shieldOff', 'lite', 'noImages', 'darkPages', 'desktop', 'safeNet', 'thirdPartyCookies', 'builtinExt', 'extensions', 'cacheMode']
 
 // Eklentilerin yerel tarafa gidecek hali; yerleşikler ./features/builtins.js'ten kaydedilir.
 let BUILTINS = []
@@ -171,6 +173,8 @@ function load() {
   if (savedSettings?.aiBase) settings.aiBases = { custom: savedSettings.aiBase, ...(isObj(settings.aiBases) ? settings.aiBases : {}) }
   delete settings.aiBase
   // Sürüm 4 öncesi kayıtlar için tek seferlik göç.
+  // Sürüm 5: gizlilik öncelikli varsayılanlar mevcut kullanıcılara da bir kez uygulanır.
+  if ((saved.v || 0) < 5 && savedSettings) Object.assign(settings, { favicons: false, prewarm: false })
   if ((saved.v || 0) < 4 && savedSettings) {
     // Eski kayıtlar: tek renkli küçük ışığa geç.
     if (!savedSettings.glow) settings.widgets = [] // eski sürüm widget'ları kendiliğinden eklemişti
@@ -209,7 +213,7 @@ function persist() {
     // Gizli sekmeler diske yazılmaz.
     const slim = tabs.filter((t) => !t.incognito).map(({ id, url, title, stack, idx }) => ({ id, url, title, stack, idx }))
     try {
-      localStorage.setItem(KEY, JSON.stringify({ v: 4, settings, tabs: slim, activeId, pins, history, blockedTotal, notifs, readLater, closedTabs }))
+      localStorage.setItem(KEY, JSON.stringify({ v: 5, settings, tabs: slim, activeId, pins, history, blockedTotal, notifs, readLater, closedTabs }))
       quotaWarned = false
     } catch {
       // Bayrak: notify → set → persist döngüsüne girmemek ve uyarıyı bir kez göstermek için.
@@ -334,7 +338,8 @@ setInterval(() => {
 export const useSleepTick = () => useStore((s) => s.sleepTick)
 export const liveCount = () => (isNative ? live.length : webLive().length)
 function openNative(id, url) {
-  WebTabs.open({ id, url })
+  // Gizli sekme yerel tarafta ayrı bir profilde (çerez, depolama, önbellek) açılır.
+  WebTabs.open({ id, url, incognito: !!tabOf(id)?.incognito })
   touch(id)
 }
 function ensureNative(tab) {
@@ -346,7 +351,7 @@ function ensureNative(tab) {
 function syncNative(reload = false) {
   if (!isNative) return
   const s = state.settings
-  WebTabs.configure({ shield: s.shield, lite: s.lite, blockImages: s.noImages, dark: s.darkPages, desktop: s.desktop, safeNet: s.safeNet !== false, allow: s.shieldOff, scripts: activeScripts(s), cacheMode: s.cacheMode, reload })
+  WebTabs.configure({ shield: s.shield, lite: s.lite, blockImages: s.noImages, dark: s.darkPages, desktop: s.desktop, safeNet: s.safeNet !== false, thirdPartyCookies: !!s.thirdPartyCookies, allow: s.shieldOff, scripts: activeScripts(s), cacheMode: s.cacheMode, reload })
 }
 
 // Sekmenin geçmiş yığınındaki i. girdiyi gösterir (arama sayfası ya da site).
@@ -656,6 +661,14 @@ export function setFull(on) {
 document.addEventListener('fullscreenchange', () => !document.fullscreenElement && state.full && setFull(false))
 
 export const clearHistory = () => set({ history: [] })
+
+// Tüm tarama verileri: geçmiş, kapatılan sekmeler ve (Android'de) çerezler, önbellek ve site depolaması.
+// Uygulamanın kendi ayarları, sabitleri ve okuma listesi korunur.
+export async function clearBrowsingData() {
+  set({ history: [], closedTabs: [] })
+  if (isNative) await WebTabs.clearData().catch(() => {})
+}
+if (state.settings.clearOnStart) clearBrowsingData()
 
 // Bağlantı ısıtma: bir bağlantının üzerine gelinince/dokunulunca sunucuya önceden bağlanılır (DNS + TLS).
 const warmed = new Set()

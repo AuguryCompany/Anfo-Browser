@@ -147,11 +147,22 @@ Kalkan, hafif mod, görselleri kapatma, sayfa karartma, masaüstü görünümü,
 
 Tüm veriler (sekmeler, geçmiş, sabitler, ayarlar) yalnızca cihazda, `localStorage` içinde tutulur.
 
+### Gizlilik
+
+- Anfo hiçbir veri toplamaz; analiz, hata raporu ya da reklam kimliği yoktur. Ayarlar, geçmiş ve anahtarlar yalnızca cihazda durur.
+- Üçüncü taraf çerezler varsayılan olarak kapalı (siteler arası takip engellenir); Ayarlar › Gizlilik'ten açılabilir.
+- Gizli sekmeler Android'de ayrı bir WebView profilinde açılır: çerezleri, depolaması ve önbelleği normal sekmelerle paylaşılmaz; son gizli sekme kapanınca profil tümüyle silinir. Geçmişe ve kapatılan sekmelere yazılmaz.
+- Sitelere Global Privacy Control (`Sec-GPC: 1`, `navigator.globalPrivacyControl`) ve `DNT: 1` gönderilir.
+- Site simgeleri ve bağlantı ısıtma varsayılan olarak kapalı (açıkken site adları DuckDuckGo'nun simge hizmetine / sitelere tıklamadan önce gider).
+- Arama yedekleri yalnızca izlemeyen motorlardan (DuckDuckGo, DuckDuckGo Lite, Mojeek); Vikipedi özetleri doğrudan Vikipedi'den.
+- "Açılışta tarama verilerini sil" ve "Tarama verilerini şimdi sil": geçmiş, kapatılan sekmeler, çerezler, önbellek ve site depolaması.
+- Kalkan reklam ve izleyici alan adlarını engeller; "Engelleri aş" DNS sorgularını şifreler.
+- Yerel AI (varsayılan) sorguları cihazdan çıkarmaz; bulut AI seçilirse sorgu ve sonuç özetleri yalnızca seçilen sağlayıcıya gider.
+
 ### Site uyumluluğu (Android)
 
-- **Engelleri aş** (Ayarlar › Kalkan, varsayılan açık): sekmelerin HTTPS trafiği uygulama içindeki yerel bir vekilden (`SafeProxy`) geçer. Alan adları şifreli DNS ile (DNS-over-HTTPS: Cloudflare 1.1.1.1, yedek Google 8.8.8.8) çözülür, TLS'in ilk paketi site adının ortasından ikiye bölünerek gönderilir; internet sağlayıcısının DNS ve basit SNI engelleri aşılır. Trafik başka bir sunucuya gitmez.
+- **Engelleri aş** (Ayarlar › Kalkan, varsayılan açık): sekmelerin HTTPS trafiği uygulama içindeki yerel bir vekilden (`SafeProxy`) geçer. Alan adları şifreli DNS ile (DNS-over-HTTPS, RFC 8484: Quad9 9.9.9.9, yedek Cloudflare 1.1.1.1) çözülür, TLS'in ilk paketi site adının ortasından ikiye bölünerek gönderilir; internet sağlayıcısının DNS ve basit SNI engelleri aşılır. Trafik başka bir sunucuya gitmez.
 - WebView'ın her isteğe eklediği `X-Requested-With` başlığı kaldırılır, kimlik Chrome'unki gibidir (`; wv` yok): bot korumalı siteler (Cloudflare vb.) uygulamayı engellemez.
-- Üçüncü taraf çerezlere izin verilir (girişler, gömülü oynatıcılar, ödeme sayfaları).
 - Yüklenemeyen sayfalarda nedeni Türkçe açıklayan kendi hata sayfası ve "Yeniden dene".
 
 ## Klasör yapısı

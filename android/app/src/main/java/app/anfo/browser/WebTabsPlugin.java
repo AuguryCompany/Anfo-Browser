@@ -6,9 +6,11 @@ import android.content.ComponentCallbacks2;
 import android.content.Context;
 import android.text.TextUtils;
 
+import androidx.webkit.ProfileStore;
 import androidx.webkit.ProxyConfig;
 import androidx.webkit.ProxyController;
 import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewCompat;
 import androidx.webkit.WebViewFeature;
 
 import java.util.Collections;
@@ -26,6 +28,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
 import android.webkit.CookieManager;
+import android.webkit.WebStorage;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -232,6 +235,12 @@ public class WebTabsPlugin extends Plugin {
         };
         getContext().getApplicationContext().registerComponentCallbacks(pressureCallbacks);
         getActivity().runOnUiThread(() -> {
+            // Onceki oturumdan (uygulama kapanirken acik kalan gizli sekmeler) kalan gizli profil silinir.
+            if (PROFILES) {
+                try {
+                    ProfileStore.getInstance().deleteProfile(INCOGNITO);
+                } catch (Exception ignored) {}
+            }
             container = new FrameLayout(getActivity());
             shape.setColor(Color.BLACK);
             container.setBackground(shape);
@@ -376,6 +385,67 @@ public class WebTabsPlugin extends Plugin {
         return null;
     }
 
+    // ---- gizlilik ----
+    private static final String INCOGNITO = "anfo-incognito"; // gizli sekmelerin ayri profili (cerez, depolama, onbellek)
+    private final Set<String> incog = new HashSet<>();
+    private volatile boolean thirdParty = false; // ucuncu taraf cerezler (varsayilan kapali: siteler arasi takip)
+    // Sayfa betiklerinden once calisir: Global Privacy Control sinyali (Brave/Firefox'taki gibi).
+    private static final String GPC_JS =
+        "try{Object.defineProperty(Navigator.prototype,'globalPrivacyControl',{get:function(){return true},configurable:true})}catch(e){}";
+    private static final Map<String, String> PRIVACY_HEADERS = new HashMap<>();
+    static {
+        PRIVACY_HEADERS.put("Sec-GPC", "1");
+        PRIVACY_HEADERS.put("DNT", "1");
+    }
+    private static final boolean PROFILES = WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE);
+
+    private static CookieManager cookies(WebView w) {
+        if (PROFILES) {
+            try {
+                return WebViewCompat.getProfile(w).getCookieManager();
+            } catch (Exception ignored) {}
+        }
+        return CookieManager.getInstance();
+    }
+
+    /** Son gizli sekme kapaninca gizli profil (cerezleri, depolamasi, onbellegi) tamamen silinir. */
+    private void dropIncognito(String id) {
+        if (!incog.remove(id) || !incog.isEmpty() || !PROFILES) return;
+        main.postDelayed(() -> {
+            if (!incog.isEmpty()) return;
+            try {
+                ProfileStore.getInstance().deleteProfile(INCOGNITO);
+            } catch (Exception ignored) {}
+        }, 500);
+    }
+
+    /**
+     * Tarama verilerini temizler: normal profilin cerezleri, onbellek, sekme gecmisleri ve sitelerin depolamasi.
+     * Uygulamanin kendi verisi (https://localhost: ayarlar, sekmeler) korunur.
+     */
+    @PluginMethod
+    public void clearData(PluginCall call) {
+        getActivity().runOnUiThread(() -> {
+            CookieManager.getInstance().removeAllCookies(null);
+            CookieManager.getInstance().flush();
+            for (WebView w : tabs.values()) {
+                w.clearCache(true);
+                w.clearHistory();
+                w.clearFormData();
+            }
+            WebStorage ws = WebStorage.getInstance();
+            ws.getOrigins(origins -> {
+                if (origins != null) {
+                    for (Object o : origins.keySet()) {
+                        String origin = String.valueOf(o);
+                        if (!origin.startsWith("https://localhost") && !origin.startsWith("http://localhost")) ws.deleteOrigin(origin);
+                    }
+                }
+                call.resolve();
+            });
+        });
+    }
+
     private Boolean safeNetOn = null;
 
     /** "Engelleri as": tum WebView'larin HTTPS trafigini yerel SafeProxy'ye (DoH + SNI bolme) yonlendirir. */
@@ -509,6 +579,7 @@ public class WebTabsPlugin extends Plugin {
         if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
             WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, Collections.emptySet());
         }
+        cookies(w).setAcceptThirdPartyCookies(w, thirdParty);
         if (Build.VERSION.SDK_INT >= 33) s.setAlgorithmicDarkeningAllowed(dark);
         else if (Build.VERSION.SDK_INT >= 29) s.setForceDark(dark ? WebSettings.FORCE_DARK_ON : WebSettings.FORCE_DARK_OFF);
         // Varsayilan WebView kimligi "; wv" ve "Version/4.0" icerir; Cloudflare gibi bot korumalari ve bircok site
@@ -519,8 +590,18 @@ public class WebTabsPlugin extends Plugin {
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private WebView create(final String id) {
+    private WebView create(final String id, boolean incognito) {
         WebView w = new WebView(getActivity());
+        // Gizli sekme: ayri profil (cerezler, depolama, onbellek normal sekmelerle paylasilmaz). Baska her cagridan once.
+        if (incognito && PROFILES) {
+            try {
+                WebViewCompat.setProfile(w, INCOGNITO);
+                incog.add(id);
+            } catch (Exception ignored) {}
+        }
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            WebViewCompat.addDocumentStartJavaScript(w, GPC_JS, Collections.singleton("*"));
+        }
         WebSettings s = w.getSettings();
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);
@@ -536,8 +617,6 @@ public class WebTabsPlugin extends Plugin {
         applySettings(w);
         blocked.put(id, new AtomicInteger());
 
-        // Ucuncu taraf cerezler (WebView'da varsayilan kapali): girisler, gomulu oynaticilar ve odeme sayfalari icin gerekli.
-        CookieManager.getInstance().setAcceptThirdPartyCookies(w, true);
         w.setWebViewClient(new WebViewClient() {
             // Renderer olurse (bellek yetmezligi) sekme WebView'i atilir; uygulama kapanmaz.
             // Sekme bir sonraki yuklemede yeniden olusturulur.
@@ -547,6 +626,7 @@ public class WebTabsPlugin extends Plugin {
                 loading.remove(id);
                 container.removeView(view);
                 view.destroy();
+                dropIncognito(id);
                 return true;
             }
 
@@ -669,6 +749,7 @@ public class WebTabsPlugin extends Plugin {
         dark = call.getBoolean("dark", false);
         desktop = call.getBoolean("desktop", false);
         applySafeNet(Boolean.TRUE.equals(call.getBoolean("safeNet", true)));
+        thirdParty = Boolean.TRUE.equals(call.getBoolean("thirdPartyCookies", false));
         allow.clear();
         JSArray arr = call.getArray("allow");
         if (arr != null) {
@@ -700,11 +781,12 @@ public class WebTabsPlugin extends Plugin {
             call.reject("id ve url gerekli");
             return;
         }
+        final boolean incognito = Boolean.TRUE.equals(call.getBoolean("incognito", false));
         getActivity().runOnUiThread(() -> {
             WebView w = tabs.get(id);
-            if (w == null) w = create(id);
+            if (w == null) w = create(id, incognito);
             else fresh.add(id); // yeni ust duzey girdi: onceki yerel gecmis temizlenir
-            w.loadUrl(url);
+            w.loadUrl(url, PRIVACY_HEADERS);
             applyVisibility();
             call.resolve();
         });
@@ -763,6 +845,7 @@ public class WebTabsPlugin extends Plugin {
                 container.removeView(w);
                 w.destroy();
             }
+            dropIncognito(id);
             applyVisibility();
             call.resolve();
         });

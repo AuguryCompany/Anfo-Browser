@@ -71,32 +71,6 @@ async function ddgLite(q) {
     .filter(Boolean)
 }
 
-// Bing bazen sonucu kendi yönlendirme adresiyle verir (…/ck/a?…&u=a1<base64>); asıl adres çözülür.
-function bingHref(href) {
-  if (!href) return null
-  const m = href.match(/[?&]u=a1([^&]+)/)
-  if (m) {
-    try {
-      href = atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))
-    } catch {
-      return null
-    }
-  }
-  return /^https?:/.test(href) && !/^https?:\/\/(www\.)?bing\.com\//.test(href) ? href : null
-}
-
-async function bing(q) {
-  const r = await nativeGet('https://www.bing.com/search', { q, setlang: 'tr', cc: 'TR' })
-  if (r.status !== 200) return []
-  return [...parse(r.data).querySelectorAll('li.b_algo')]
-    .map((el) => {
-      const a = el.querySelector('h2 a')
-      const url = bingHref(a?.getAttribute('href'))
-      return url && { title: a.textContent.trim(), url, snippet: el.querySelector('.b_caption p, p.b_lineclamp2, p')?.textContent.trim() || '' }
-    })
-    .filter(Boolean)
-}
-
 async function mojeek(q) {
   const r = await nativeGet('https://www.mojeek.com/search', { q })
   if (r.status !== 200) return []
@@ -109,12 +83,13 @@ async function mojeek(q) {
     .filter(Boolean)
 }
 
-// Önce DuckDuckGo; boş dönerse (bot doğrulaması, engel, ağ hatası) sırayla yedek kaynaklar. Sorgu yedeklere
+// Önce DuckDuckGo; boş dönerse (bot doğrulaması, engel, ağ hatası) sırayla yedek kaynaklar (DuckDuckGo Lite, Mojeek). Sorgu yedeklere
 // yalnızca birincisi sonuç vermediğinde gönderilir.
 async function web(q) {
   const a = await ddgHtml(q).catch(() => [])
   if (a.length) return a
-  const rest = [ddgLite, bing, mojeek].map((f) => f(q).catch(() => []))
+  // Gizlilik: yalnızca kullanıcıyı izlemeyen motorlar (Bing yedeği kaldırıldı).
+  const rest = [ddgLite, mojeek].map((f) => f(q).catch(() => []))
   for (const p of rest) {
     const r = await p
     if (r.length) return r
