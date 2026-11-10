@@ -12,6 +12,11 @@ const get = async (url) => {
     ['Yahoo grafik ^GSPC 1Y', 'https://query1.finance.yahoo.com/v8/finance/chart/%5EGSPC?range=1y&interval=1d', (t) => { const r = JSON.parse(t).chart.result[0]; return `${r.meta.regularMarketPrice} · ${r.indicators.quote[0].close.length} nokta` }],
     ['Yahoo grafik XU100.IS', 'https://query1.finance.yahoo.com/v8/finance/chart/XU100.IS?range=1d&interval=5m', (t) => { const m = JSON.parse(t).chart.result[0].meta; return `${m.regularMarketPrice} ${m.currency}` }],
     ['Yahoo arama "thyao"', 'https://query1.finance.yahoo.com/v1/finance/search?q=thyao&quotesCount=8&newsCount=0&lang=tr-TR&region=TR', (t) => JSON.parse(t).quotes.map((q) => q.symbol + '/' + q.quoteType).join(', ')],
+    ['Yahoo query2 grafik NVDA', 'https://query2.finance.yahoo.com/v8/finance/chart/NVDA?range=1d&interval=5m', (t) => { const m = JSON.parse(t).chart.result[0].meta; return `${m.regularMarketPrice} ${m.currency}` }],
+    ['Stooq anlık NVDA', 'https://stooq.com/q/l/?s=nvda.us&f=sd2t2ohlcvn&h&e=csv', (t) => t.trim().split('\n').slice(0, 2).join(' | ')],
+    ['Stooq anlık ^SPX', 'https://stooq.com/q/l/?s=%5Espx&f=sd2t2ohlcvn&h&e=csv', (t) => t.trim().split('\n').slice(0, 2).join(' | ')],
+    ['Stooq anlık XU100', 'https://stooq.com/q/l/?s=%5Exu100&f=sd2t2ohlcvn&h&e=csv', (t) => t.trim().split('\n').slice(0, 2).join(' | ')],
+    ['Stooq geçmiş NVDA', 'https://stooq.com/q/d/l/?s=nvda.us&i=d', (t) => t.trim().split('\n').length + ' satır · ' + t.slice(0, 60).replace(/\n/g, ' | ')],
     ['Google Haberler gündem', 'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr', (t) => (t.match(/<item>/g) || []).length + ' haber · ' + (t.match(/<item><title>([^<]{0,80})/) || [])[1]],
     ['Google Haberler "Teknoloji"', 'https://news.google.com/rss/search?q=Teknoloji%20when%3A2d&hl=tr&gl=TR&ceid=TR:tr', (t) => (t.match(/<item>/g) || []).length + ' haber'],
   ]) {
