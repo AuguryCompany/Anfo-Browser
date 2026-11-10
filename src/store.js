@@ -46,6 +46,7 @@ export const DEFAULT_SETTINGS = {
   noImages: false, // veri tasarrufu
   darkPages: false,
   desktop: false,
+  safeNet: true, // engelleri aş: şifreli DNS (DoH) + site adını bölerek gönderme (yerel vekil)
   liveTabs: 4, // aynı anda bellekte tutulan sekme sayısı
   // AI modu
   ai: true,
@@ -91,7 +92,7 @@ export const DEFAULT_SETTINGS = {
   cacheMode: 'normal', // normal | aggressive | off (Android HTTP önbelleği)
   prewarm: true, // bağlantıların üzerine gelince sunucuya önceden bağlan
 }
-const NATIVE_KEYS = ['shield', 'shieldOff', 'lite', 'noImages', 'darkPages', 'desktop', 'builtinExt', 'extensions', 'cacheMode']
+const NATIVE_KEYS = ['shield', 'shieldOff', 'lite', 'noImages', 'darkPages', 'desktop', 'safeNet', 'builtinExt', 'extensions', 'cacheMode']
 
 // Eklentilerin yerel tarafa gidecek hali; yerleşikler ./features/builtins.js'ten kaydedilir.
 let BUILTINS = []
@@ -345,7 +346,7 @@ function ensureNative(tab) {
 function syncNative(reload = false) {
   if (!isNative) return
   const s = state.settings
-  WebTabs.configure({ shield: s.shield, lite: s.lite, blockImages: s.noImages, dark: s.darkPages, desktop: s.desktop, allow: s.shieldOff, scripts: activeScripts(s), cacheMode: s.cacheMode, reload })
+  WebTabs.configure({ shield: s.shield, lite: s.lite, blockImages: s.noImages, dark: s.darkPages, desktop: s.desktop, safeNet: s.safeNet !== false, allow: s.shieldOff, scripts: activeScripts(s), cacheMode: s.cacheMode, reload })
 }
 
 // Sekmenin geçmiş yığınındaki i. girdiyi gösterir (arama sayfası ya da site).

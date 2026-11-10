@@ -147,6 +147,13 @@ Kalkan, hafif mod, görselleri kapatma, sayfa karartma, masaüstü görünümü,
 
 Tüm veriler (sekmeler, geçmiş, sabitler, ayarlar) yalnızca cihazda, `localStorage` içinde tutulur.
 
+### Site uyumluluğu (Android)
+
+- **Engelleri aş** (Ayarlar › Kalkan, varsayılan açık): sekmelerin HTTPS trafiği uygulama içindeki yerel bir vekilden (`SafeProxy`) geçer. Alan adları şifreli DNS ile (DNS-over-HTTPS: Cloudflare 1.1.1.1, yedek Google 8.8.8.8) çözülür, TLS'in ilk paketi site adının ortasından ikiye bölünerek gönderilir; internet sağlayıcısının DNS ve basit SNI engelleri aşılır. Trafik başka bir sunucuya gitmez.
+- WebView'ın her isteğe eklediği `X-Requested-With` başlığı kaldırılır, kimlik Chrome'unki gibidir (`; wv` yok): bot korumalı siteler (Cloudflare vb.) uygulamayı engellemez.
+- Üçüncü taraf çerezlere izin verilir (girişler, gömülü oynatıcılar, ödeme sayfaları).
+- Yüklenemeyen sayfalarda nedeni Türkçe açıklayan kendi hata sayfası ve "Yeniden dene".
+
 ## Klasör yapısı
 
 | Yol | İçerik |

@@ -606,6 +606,12 @@ export default function Settings() {
             <Toggle k="noImages" value={s.noImages} label="Görselleri yükleme" hint="veri tasarrufu" />
             <Toggle k="darkPages" value={s.darkPages} label="Sayfaları karart" />
             <Toggle k="desktop" value={s.desktop} label="Masaüstü görünümü iste" />
+            <Toggle
+              k="safeNet"
+              value={s.safeNet !== false}
+              label="Engelleri aş"
+              hint="şifreli DNS (Cloudflare/Google) ve site adını bölerek gönderme; internet sağlayıcısının DNS/SNI engellerini aşar"
+            />
           </section>
         ) : (
           <section className="card" style={{ '--i': i++ }}>

@@ -5,6 +5,13 @@ import android.app.ActivityManager;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
 import android.text.TextUtils;
+
+import androidx.webkit.ProxyConfig;
+import androidx.webkit.ProxyController;
+import androidx.webkit.WebSettingsCompat;
+import androidx.webkit.WebViewFeature;
+
+import java.util.Collections;
 import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -18,6 +25,7 @@ import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
+import android.webkit.CookieManager;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -368,6 +376,33 @@ public class WebTabsPlugin extends Plugin {
         return null;
     }
 
+    private Boolean safeNetOn = null;
+
+    /** "Engelleri as": tum WebView'larin HTTPS trafigini yerel SafeProxy'ye (DoH + SNI bolme) yonlendirir. */
+    private void applySafeNet(boolean on) {
+        if (safeNetOn != null && safeNetOn == on) return;
+        if (!WebViewFeature.isFeatureSupported(WebViewFeature.PROXY_OVERRIDE)) return;
+        safeNetOn = on;
+        java.util.concurrent.Executor ex = Runnable::run;
+        new Thread(() -> {
+            try {
+                if (on) {
+                    int port = SafeProxy.start();
+                    ProxyConfig cfg = new ProxyConfig.Builder()
+                        .addProxyRule("127.0.0.1:" + port, ProxyConfig.MATCH_HTTPS)
+                        .addBypassRule("localhost")
+                        .addBypassRule("127.0.0.1")
+                        .build();
+                    main.post(() -> ProxyController.getInstance().setProxyOverride(cfg, ex, () -> {}));
+                } else {
+                    main.post(() -> ProxyController.getInstance().clearProxyOverride(ex, SafeProxy::stop));
+                }
+            } catch (Exception e) {
+                safeNetOn = null; // vekil acilamadi: dogrudan baglantiyla devam
+            }
+        }).start();
+    }
+
     /** Yukleme hatasi sayfasi: koyu tema, anlasilir neden ve "Yeniden dene". */
     private static String errorPage(String url, int code, String desc) {
         String why;
@@ -470,6 +505,10 @@ public class WebTabsPlugin extends Plugin {
         WebSettings s = w.getSettings();
         s.setBlockNetworkImage(blockImages);
         s.setCacheMode(cacheMode);
+        // WebView her istege "X-Requested-With: <paket adi>" ekler; Cloudflare ve bircok site bu yuzden engeller.
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST)) {
+            WebSettingsCompat.setRequestedWithHeaderOriginAllowList(s, Collections.emptySet());
+        }
         if (Build.VERSION.SDK_INT >= 33) s.setAlgorithmicDarkeningAllowed(dark);
         else if (Build.VERSION.SDK_INT >= 29) s.setForceDark(dark ? WebSettings.FORCE_DARK_ON : WebSettings.FORCE_DARK_OFF);
         // Varsayilan WebView kimligi "; wv" ve "Version/4.0" icerir; Cloudflare gibi bot korumalari ve bircok site
@@ -497,6 +536,8 @@ public class WebTabsPlugin extends Plugin {
         applySettings(w);
         blocked.put(id, new AtomicInteger());
 
+        // Ucuncu taraf cerezler (WebView'da varsayilan kapali): girisler, gomulu oynaticilar ve odeme sayfalari icin gerekli.
+        CookieManager.getInstance().setAcceptThirdPartyCookies(w, true);
         w.setWebViewClient(new WebViewClient() {
             // Renderer olurse (bellek yetmezligi) sekme WebView'i atilir; uygulama kapanmaz.
             // Sekme bir sonraki yuklemede yeniden olusturulur.
@@ -627,6 +668,7 @@ public class WebTabsPlugin extends Plugin {
         blockImages = call.getBoolean("blockImages", false);
         dark = call.getBoolean("dark", false);
         desktop = call.getBoolean("desktop", false);
+        applySafeNet(Boolean.TRUE.equals(call.getBoolean("safeNet", true)));
         allow.clear();
         JSArray arr = call.getArray("allow");
         if (arr != null) {
