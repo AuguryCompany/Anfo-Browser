@@ -102,7 +102,7 @@ export default function LocalModels() {
       {err && <p className="sx-err">{err}</p>}
       <p>
         Modeller yalnızca sen indirirsen, bir kez Hugging Face’ten indirilir ve cihazda saklanır. Özet tamamen bu cihazda üretilir; sorgun bir
-        AI sunucusuna gönderilmez, anahtar gerekmez. Wi-Fi önerilir; model ilk kullanımda belleğe yüklenirken birkaç saniye sürebilir.
+        AI sunucusuna gönderilmez, anahtar gerekmez. Wi-Fi önerilir. İndirme sürerken uygulamayı arka plana alabilirsin; ilerleme bildirimde görünür. Model ilk kullanımda belleğe yüklenirken birkaç saniye sürebilir.
         {dev ? ` Çalışma biçimi: ${dev === 'webgpu' ? 'GPU (WebGPU)' : 'işlemci (WASM)'}.` : ''}
       </p>
     </div>

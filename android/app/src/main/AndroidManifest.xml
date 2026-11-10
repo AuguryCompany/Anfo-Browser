@@ -34,11 +34,22 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- model indirirken / AI özeti üretirken uygulamanın arka planda dondurulmasını önler -->
+        <service
+            android:name=".KeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Android 13+: indirme ilerlemesi bildirimi için -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- hava durumu widget'ındaki "konumumu kullan" düğmesi için (yalnızca dokunulunca istenir) -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 </manifest>

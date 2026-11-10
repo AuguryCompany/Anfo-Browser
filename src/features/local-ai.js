@@ -1,6 +1,7 @@
 // Cihazda çalışan küçük dil modelleri: indirme, silme, durum ve metin üretimi.
 // Ağır iş llm.worker.js'te yapılır; bu modül yalnızca mesajlaşmayı ve arayüz durumunu yönetir.
 import { useSyncExternalStore } from 'react'
+import { isNative, WebTabs } from '../native'
 
 // Yalnızca 800M parametrenin altındaki, 4 bit nicemlenmiş modeller. Liste kasıtlı olarak kısa tutulur:
 // Gemma 3 270M denendi ama Türkçe özette anlamsız metin ürettiği için çıkarıldı (e2e/llm-test.cjs).
@@ -26,6 +27,25 @@ const patch = (model, p) => {
 const subscribe = (f) => (subs.add(f), () => subs.delete(f))
 export const useLocalModels = () => useSyncExternalStore(subscribe, () => state)
 export const localDevice = () => device
+
+// Android: model indirirken ve özet üretirken uygulama arka plana alınsa da iş sürsün diye bir ön plan hizmeti
+// (bildirimde ilerleme) açılır. Birden çok iş aynı anda olabilir; sayaç sıfırlanınca hizmet kapanır.
+let working = 0
+let lastNote = 0
+const note = (on, text, progress = -1) => {
+  if (!isNative) return
+  const now = Date.now()
+  if (on && now - lastNote < 1000 && progress >= 0 && progress < 100) return // bildirim güncellemesi saniyede en çok bir kez
+  lastNote = now
+  WebTabs.keepAlive({ on, text, progress: Math.floor(progress) }).catch(() => {})
+}
+const workStart = (text) => (working++, note(true, text))
+const workEnd = () => {
+  if (--working <= 0) {
+    working = 0
+    note(false, '')
+  }
+}
 
 const SIZE_KEY = 'anfo:llm-size2' // 2: boyut, cihaza uygun türe göre ölçülür
 try {
@@ -68,7 +88,10 @@ function getWorker() {
   if (worker) return worker
   worker = new Worker(new URL('./llm.worker.js', import.meta.url), { type: 'module' })
   worker.onmessage = ({ data: m }) => {
-    if (m.type === 'progress') return patch(m.model, { status: 'downloading', progress: m.progress, loaded: m.loaded, total: m.total })
+    if (m.type === 'progress') {
+      if (working) note(true, `${modelName(m.model)} indiriliyor · %${Math.floor(m.progress)}`, m.progress)
+      return patch(m.model, { status: 'downloading', progress: m.progress, loaded: m.loaded, total: m.total })
+    }
     const p = pending.get(m.id)
     switch (m.type) {
       case 'token':
@@ -139,7 +162,8 @@ export async function downloadLocal(model) {
   patch(model, { status: 'downloading', progress: 0, loaded: 0, error: '' })
   try {
     setBusy(model)
-    await call({ type: 'load', model, dtype: readDtypes()[model] }).finally(() => setBusy(null))
+    workStart(`${modelName(model)} indiriliyor`)
+    await call({ type: 'load', model, dtype: readDtypes()[model] }).finally(() => (setBusy(null), workEnd()))
   } catch (e) {
     const net = /fetch|network|load resource/i.test(e.message)
     const unsupported = /session|implementation|backend/i.test(e.message)
@@ -189,9 +213,8 @@ export async function askLocal({ model, system, prompt, onText, onStart, signal,
       { role: 'user', content: prompt },
     ]
     setBusy(model)
-    const { text } = await call({ type: 'gen', model, dtype: readDtypes()[model], messages, max: maxTokens }, { onText, onStart }).finally(() =>
-      setBusy(null),
-    )
+    workStart('AI özeti hazırlanıyor')
+    const { text } = await call({ type: 'gen', model, dtype: readDtypes()[model], messages, max: maxTokens }, { onText, onStart }).finally(() => (setBusy(null), workEnd()))
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
     return text
   } finally {

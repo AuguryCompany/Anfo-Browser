@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
@@ -132,13 +133,46 @@ public class WebTabsPlugin extends Plugin {
         }
     }
 
+    // Model indirme / AI uretimi surerken true: arka plana gecince sayfa zamanlayicilari durdurulmaz.
+    private volatile boolean keepAlive = false;
+
     @Override
     protected void handleOnPause() {
         inForeground = false;
         getActivity().runOnUiThread(() -> {
             for (WebView w : tabs.values()) w.onPause();
             // pauseTimers global etkilidir (tum WebView'lar); bir ornek uzerinden bir kez cagrilir.
-            bridge.getWebView().pauseTimers();
+            if (!keepAlive) bridge.getWebView().pauseTimers();
+        });
+    }
+
+    /** Arka plan isi (model indirme, AI ozeti) icin on plan servisi acar/kapatir ve bildirimi gunceller. */
+    @PluginMethod
+    public void keepAlive(PluginCall call) {
+        boolean on = Boolean.TRUE.equals(call.getBoolean("on", false));
+        String text = call.getString("text", "Çalışıyor…");
+        int progress = call.getInt("progress", -1);
+        getActivity().runOnUiThread(() -> {
+            Context c = getContext().getApplicationContext();
+            if (on) {
+                if (Build.VERSION.SDK_INT >= 33
+                        && getActivity().checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                    // Yalnizca bildirimin gorunmesi icin; reddedilse de servis calisir.
+                    getActivity().requestPermissions(new String[] {android.Manifest.permission.POST_NOTIFICATIONS}, 4107);
+                }
+                keepAlive = true;
+                try {
+                    KeepAliveService.start(c, text, progress);
+                } catch (Exception ignored) {}
+                bridge.getWebView().resumeTimers();
+                // Gorunmeyen sayfanin renderer'i dusuk oncelige dusmesin.
+                if (Build.VERSION.SDK_INT >= 26) bridge.getWebView().setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false);
+            } else {
+                keepAlive = false;
+                KeepAliveService.stop(c);
+                if (!inForeground) bridge.getWebView().pauseTimers();
+            }
+            call.resolve();
         });
     }
 
