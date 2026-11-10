@@ -12,8 +12,9 @@ const model = process.argv[3] || 'onnx-community/Qwen3-0.6B-ONNX'
 const worker = fs.readdirSync(path.join(__dirname, '..', 'dist', 'assets')).find((f) => /^llm\.worker-.*\.js$/.test(f))
 const VARIANTS = [
   ['varsayılan', undefined],
-  ['prepack kapalı', { extra: { session: { disable_prepacking: '1' } } }],
-  ['prepack kapalı + arena kapalı', { enableCpuMemArena: false, extra: { session: { disable_prepacking: '1' } } }],
+  ['graf optimizasyonu kapalı', { graphOptimizationLevel: 'disabled' }],
+  ['graf optimizasyonu temel', { graphOptimizationLevel: 'basic' }],
+  ['kapalı + prepack kapalı', { graphOptimizationLevel: 'disabled', extra: { session: { disable_prepacking: '1' } } }],
 ]
 
 const rss = () =>

@@ -26,7 +26,7 @@ jobs:
         run: |
           npx vite preview --port 4173 &
           sleep 3
-          node e2e/llm-test.cjs http://localhost:4173
+          node e2e/llm-test.cjs http://localhost:4173 onnx-community/Qwen3-0.6B-ONNX
       - name: Bellek deneyi (ONNX Runtime oturum ayarları)
         if: always()
         run: |
