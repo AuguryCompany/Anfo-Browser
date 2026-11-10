@@ -7,8 +7,9 @@ env.allowLocalModels = false
 
 // Nicemleme türü cihaza göre seçilir. WASM (işlemci) motoru 4 bit modellerin gömme katmanındaki
 // GatherBlockQuantized işlemini desteklemez; orada 8 bit kullanılır. Bir tür oturum açamazsa sıradaki denenir.
-const CANDIDATES = { webgpu: ['q4f16', 'q4', 'q8'], wasm: ['q8', 'int8', 'uint8'] }
-const ALL_DTYPES = ['q4f16', 'q4', 'q8', 'int8', 'uint8']
+// fp16: bazı modellerin (Gemma 3) 8 bit sürümü de GatherBlockQuantized kullanır; işlemcide son çare olarak 16 bit denenir.
+const CANDIDATES = { webgpu: ['q4f16', 'q4', 'q8'], wasm: ['q8', 'fp16'] }
+const ALL_DTYPES = ['q4f16', 'q4', 'q8', 'int8', 'uint8', 'fp16']
 const stopper = new InterruptableStoppingCriteria()
 let gen = null // yüklü pipeline
 let genModel = null
@@ -90,7 +91,13 @@ function load(model, preferred) {
 }
 
 // Qwen3 düşünme bölümünü (<think>…</think>) çıktıdan ayıklar.
-const clean = (t) => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').replace(/^\s+/, '')
+// Ayrıca kart düz metin gösterdiği için Markdown kalın/başlık işaretleri temizlenir.
+const clean = (t) =>
+  t
+    .replace(/<think>[\s\S]*?(<\/think>|$)/g, '')
+    .replace(/\*\*|__/g, '')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/^\s+/, '')
 
 async function generate({ id, model, dtype, messages, max }) {
   const p = await load(model, dtype)

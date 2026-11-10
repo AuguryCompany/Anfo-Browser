@@ -89,7 +89,7 @@ if (!worker) throw new Error('dist/assets içinde llm.worker bulunamadı; önce 
     const sec = Math.round((Date.now() - t0) / 1000)
     if (r.ok)
       console.log(
-        `BAŞARILI (${sec} sn) tür=${r.dtype} cihaz=${r.device} üretim=${r.genSec} sn önbellekte=${r.cached} yeniden-yükleme=${r.reload} ${r.reloadSec} sn\nYanıt: ${r.text}`,
+        `BAŞARILI (${sec} sn) tür=${r.dtype} cihaz=${r.device} üretim=${r.genSec} sn önbellekte=${r.cached} yeniden-yükleme=${r.reload} ${r.reloadSec} sn\nYanıt: ${JSON.stringify(r.text)}`,
       )
     else {
       failed++
