@@ -37,12 +37,35 @@ export const PROVIDERS = {
     hint: 'gsk_…',
     models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
   },
+  azure: {
+    label: 'Azure OpenAI',
+    logo: 'azure',
+    hint: 'Azure anahtarı',
+    models: [], // Azure'da model yerine, kendi oluşturduğun dağıtımın (deployment) adı yazılır
+    editable: true, // adres kullanıcıdan: https://<kaynak>.openai.azure.com
+    required: true,
+    baseHint: 'https://kaynak-adi.openai.azure.com',
+    modelHint: 'dağıtım adı',
+    auth: 'api-key',
+  },
+  alibaba: {
+    label: 'Alibaba Cloud',
+    logo: 'alibabacloud',
+    base: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+    editable: true, // anahtar bölgeye bağlıdır: Çin konsolu için https://dashscope.aliyuncs.com/compatible-mode/v1
+    baseHint: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1',
+    hint: 'sk-…',
+    models: ['qwen-plus', 'qwen-turbo', 'qwen-max'],
+  },
   custom: {
     label: 'Özel',
     logo: null,
     hint: 'isteğe bağlı',
     models: [],
     custom: true, // adres kullanıcıdan: Ollama, LM Studio, vLLM… (OpenAI uyumlu)
+    editable: true,
+    required: true,
+    baseHint: 'http://192.168.1.5:11434/v1',
   },
 }
 
@@ -51,13 +74,20 @@ export const PROVIDER_IDS = Object.keys(PROVIDERS)
 export const providerOf = (s) => (PROVIDERS[s.aiProvider] ? s.aiProvider : 'anthropic')
 export const keyOf = (s, p = providerOf(s)) => (s.aiKeys?.[p] || '').trim()
 export const modelOf = (s, p = providerOf(s)) => (s.aiModels?.[p] || '').trim() || PROVIDERS[p].models[0] || ''
-export const baseOf = (s, p = providerOf(s)) => (PROVIDERS[p].custom ? (s.aiBase || '').trim().replace(/\/+$/, '') : PROVIDERS[p].base || '')
+const clean = (u) => (u || '').trim().replace(/\/+$/, '')
+// Adres: düzenlenebilir sağlayıcılarda kullanıcının girdiği, yoksa varsayılan. Azure'da kaynak adresine /openai/v1 eklenir.
+export const baseOf = (s, p = providerOf(s)) => {
+  const def = PROVIDERS[p]
+  let u = def.editable ? clean(s.aiBases?.[p]) || clean(def.base) : clean(def.base)
+  if (p === 'azure' && u && !/\/openai(\/|$)/.test(u)) u += '/openai/v1'
+  return u
+}
 
 // Bulut AI kullanıma hazır mı: anahtar (özelde adres) ve model gerekir.
 export const cloudReady = (s) => {
   const p = providerOf(s)
   const def = PROVIDERS[p]
-  const authed = def.custom ? !!baseOf(s, p) : keyOf(s, p).length >= 10
+  const authed = def.custom ? !!baseOf(s, p) : keyOf(s, p).length >= 10 && (!def.required || !!baseOf(s, p))
   return authed && !!modelOf(s, p)
 }
 
@@ -107,9 +137,9 @@ export async function fetchModels(s, p = providerOf(s)) {
     const base = baseOf(s, p)
     if (!base) throw new Error('Önce adresi gir.')
     url = base + '/models'
-    if (key) headers.Authorization = 'Bearer ' + key
+    if (key) headers[p === 'azure' ? 'api-key' : 'Authorization'] = p === 'azure' ? key : 'Bearer ' + key
   }
-  if (p !== 'openrouter' && p !== 'custom' && !key) throw new Error('Önce API anahtarını gir.')
+  if (p !== 'openrouter' && !PROVIDERS[p].custom && !key) throw new Error('Önce API anahtarını gir.')
   const r = await fetch(url, { headers })
   if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? 'API anahtarı geçersiz.' : `Liste alınamadı (${r.status}).`)
   const j = await r.json()

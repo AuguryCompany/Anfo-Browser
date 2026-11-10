@@ -10,8 +10,8 @@ const SYSTEM = `Bir tarayıcının içindeki özet katmanısın. Kullanıcının
 Yalnızca sana verilen kaynaklara dayan; kaynaklarda olmayan bir şeyi biliyormuş gibi sunma, emin olmadığında bunu söyle.
 Düz metin yaz: başlık, madde imi ya da Markdown kullanma. En fazla üç kısa paragraf.`
 
-// Bulut AI: provider 'anthropic' ise Anthropic SDK'sı, diğerlerinde (OpenRouter, OpenAI, Gemini, Groq, özel)
-// OpenAI uyumlu /chat/completions akışı kullanılır. İstek doğrudan cihazdan sağlayıcıya gider.
+// Bulut AI: provider 'anthropic' ise Anthropic SDK'sı, diğerlerinde (OpenRouter, OpenAI, Azure, Gemini, Groq, Alibaba, özel)
+// OpenAI uyumlu /chat/completions akışı kullanılır (Azure OpenAI v1 yolu dahil; Azure anahtarı 'api-key' başlığıyla gider). İstek doğrudan cihazdan sağlayıcıya gider.
 export async function ask({ provider = 'anthropic', key, base, prompt, onText, signal, maxTokens = MAX_TOKENS, model = MODEL }) {
   if (provider !== 'anthropic') return askCompat({ provider, key, base, model, prompt, onText, signal, maxTokens })
   sdk ||= (await import('@anthropic-ai/sdk')).default
@@ -53,7 +53,7 @@ const stripThink = (t) => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').replace
 async function askCompat({ provider, key, base, model, prompt, onText, signal, maxTokens }) {
   if (!base) throw new Error('Sağlayıcı adresi eksik. Ayarlar › AI bölümünden gir.')
   const headers = { 'Content-Type': 'application/json' }
-  if (key) headers.Authorization = 'Bearer ' + key
+  if (key) headers[provider === 'azure' ? 'api-key' : 'Authorization'] = provider === 'azure' ? key : 'Bearer ' + key
   if (provider === 'openrouter') headers['X-Title'] = 'Anfo Browser'
   const body = {
     model,
@@ -64,7 +64,7 @@ async function askCompat({ provider, key, base, model, prompt, onText, signal, m
     ],
   }
   // OpenAI'nin yeni modelleri max_tokens yerine max_completion_tokens ister; diğerleri max_tokens.
-  body[provider === 'openai' ? 'max_completion_tokens' : 'max_tokens'] = maxTokens
+  body[provider === 'openai' || provider === 'azure' ? 'max_completion_tokens' : 'max_tokens'] = maxTokens
   let res
   try {
     res = await fetch(base + '/chat/completions', { method: 'POST', headers, body: JSON.stringify(body), signal })

@@ -76,3 +76,11 @@
 .ap-btn .ai-logo { font-size: 1.05rem; flex: none; }
 .ap-btn > svg { flex: none; }
 .ap-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--muted); }
+.ap-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+.ap-chip { min-height: 1.9rem; padding: 0 0.65rem; border-radius: 999px; background: var(--frost); color: var(--muted); font-size: 0.72rem; transition: background 0.3s, color 0.3s; }
+.ap-chip[aria-pressed='true'] { background: var(--frost-2); color: var(--text); }
+.ap-list { display: flex; flex-direction: column; gap: 0.35rem; }
+.ap-scroll { max-height: 12rem; overflow-y: auto; display: flex; flex-direction: column; gap: 0.1rem; border-radius: var(--r-sm); background: rgb(0 0 0 / 0.25); padding: 0.25rem; overscroll-behavior: contain; }
+.ap-opt { min-height: 2.1rem; padding: 0 0.6rem; text-align: left; border-radius: 8px; background: none; color: var(--muted); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ap-opt:hover, .ap-opt[aria-selected='true'] { background: var(--frost-2); color: var(--text); }
+.ap-none { padding: 0.6rem; color: var(--muted); font-size: 0.75rem; }

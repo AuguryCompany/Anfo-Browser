@@ -53,7 +53,7 @@ export const DEFAULT_SETTINGS = {
   aiProvider: 'anthropic', // anthropic | openrouter | openai | gemini | groq | custom
   aiKeys: {}, // sağlayıcı → API anahtarı (yalnızca bu cihazda)
   aiModels: {}, // sağlayıcı → seçili model (boşsa sağlayıcının varsayılanı)
-  aiBase: '', // özel sağlayıcı adresi (OpenAI uyumlu; ör. http://192.168.1.5:11434/v1)
+  aiBases: {}, // sağlayıcı → adres (Azure, Alibaba Cloud bölgesi, özel OpenAI uyumlu sunucu)
   localModel: '', // seçili ve indirilmiş yerel model (boşsa yerel AI hazır değil)
   // ana sayfa ve görünüm
   widgets: [], // gösterilen widget'lar, sırasıyla — kullanıcı eklemeden hiçbiri görünmez
@@ -165,6 +165,9 @@ function load() {
     settings.aiKeys = { anthropic: savedSettings.aiKey, ...(isObj(settings.aiKeys) ? settings.aiKeys : {}) }
   }
   delete settings.aiKey
+  // Tek 'aiBase' (özel sağlayıcı) → sağlayıcı başına adresler.
+  if (savedSettings?.aiBase) settings.aiBases = { custom: savedSettings.aiBase, ...(isObj(settings.aiBases) ? settings.aiBases : {}) }
+  delete settings.aiBase
   // Sürüm 4 öncesi kayıtlar için tek seferlik göç.
   if ((saved.v || 0) < 4 && savedSettings) {
     // Eski kayıtlar: tek renkli küçük ışığa geç.
@@ -685,7 +688,7 @@ export async function memoryInfo() {
   return m ? { usedMB: Math.round(m.usedJSHeapSize / 1048576), maxMB: Math.round(m.jsHeapSizeLimit / 1048576) } : null
 }
 // Kullanıcı içeriği korunur; yalnızca görünüm ve davranış ayarları sıfırlanır.
-const USER_KEYS = ['aiKeys', 'aiModels', 'aiBase', 'ghToken', 'ghClientId', 'notes', 'extensions', 'builtinExt', 'bangs', 'widgets', 'wallpaper', 'city', 'name']
+const USER_KEYS = ['aiKeys', 'aiModels', 'aiBases', 'ghToken', 'ghClientId', 'notes', 'extensions', 'builtinExt', 'bangs', 'widgets', 'wallpaper', 'city', 'name']
 export const resetSettings = () => {
   set((s) => {
     const keep = {}

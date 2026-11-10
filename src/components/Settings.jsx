@@ -207,7 +207,10 @@ function CloudAi({ s }) {
       setBusy(false)
     }
   }
-  const suggestions = [...new Set([...def.models, ...list])]
+  const [q, setQ] = useState('')
+  const chosen = s.aiModels?.[p] || ''
+  const shown = list.filter((m) => m.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 80)
+  const setModel = (m) => setSetting('aiModels', { ...s.aiModels, [p]: m })
 
   return (
     <>
@@ -219,10 +222,12 @@ function CloudAi({ s }) {
           </button>
         ))}
       </div>
-      {def.custom && (
+      {def.editable && (
         <label className="field">
-          <span>Adres (OpenAI uyumlu)</span>
-          <SaveField value={s.aiBase} onSave={save('aiBase')} placeholder="http://192.168.1.5:11434/v1" autoComplete="off" spellCheck={false} />
+          <span>
+            Adres <small>{def.required ? 'gerekli' : 'isteğe bağlı'}</small>
+          </span>
+          <SaveField key={p + 'b'} value={s.aiBases?.[p] || ''} onSave={save('aiBases', p)} placeholder={def.baseHint} autoComplete="off" spellCheck={false} inputMode="url" />
         </label>
       )}
       <label className="field">
@@ -231,22 +236,42 @@ function CloudAi({ s }) {
       </label>
       <label className="field">
         <span>
-          Model <small>{s.aiModels?.[p] ? '' : 'varsayılan'}</small>
+          Model <small>{chosen ? '' : def.models[0] ? 'varsayılan' : 'yaz'}</small>
         </span>
-        <SaveField key={p + 'm'} value={s.aiModels?.[p] || ''} onSave={save('aiModels', p)} list="ai-models" placeholder={modelOf(s, p) || 'model adı'} autoComplete="off" spellCheck={false} />
-        <datalist id="ai-models">
-          {suggestions.map((m) => (
-            <option key={m} value={m} />
-          ))}
-        </datalist>
+        <SaveField key={p + 'm'} value={chosen} onSave={save('aiModels', p)} placeholder={def.modelHint || modelOf(s, p) || 'model adı'} autoComplete="off" autoCapitalize="off" spellCheck={false} />
       </label>
-      <div className="ap-row">
-        <button className="link" onClick={load} disabled={busy}>
-          {busy ? 'Getiriliyor…' : 'Modelleri getir'}
-        </button>
-        {list.length > 0 && <span>{list.length} model · yazınca öneriler çıkar</span>}
-        {err && <span className="sx-err">{err}</span>}
-      </div>
+      {def.models.length > 0 && (
+        <div className="ap-chips" aria-label="Önerilen modeller">
+          {def.models.map((m) => (
+            <button key={m} className="ap-chip" aria-pressed={(chosen || def.models[0]) === m} onClick={() => setModel(m)}>
+              {m}
+            </button>
+          ))}
+        </div>
+      )}
+      {p !== 'azure' && (
+        <div className="ap-row">
+          <button className="link" onClick={load} disabled={busy}>
+            {busy ? 'Getiriliyor…' : 'Modelleri getir'}
+          </button>
+          {list.length > 0 && <span>{list.length} model</span>}
+          {err && <span className="sx-err">{err}</span>}
+        </div>
+      )}
+      {list.length > 0 && (
+        <div className="ap-list">
+          <input className="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Listede ara…" autoComplete="off" spellCheck={false} />
+          <div className="ap-scroll" role="listbox" aria-label="Modeller">
+            {shown.map((m) => (
+              <button key={m} role="option" aria-selected={chosen === m} className="ap-opt" onClick={() => setModel(m)}>
+                {m}
+              </button>
+            ))}
+            {!shown.length && <span className="ap-none">Eşleşen model yok</span>}
+          </div>
+        </div>
+      )}
+      {p === 'azure' && <p>Model yerine Azure portalında oluşturduğun dağıtımın (deployment) adını yaz.</p>}
     </>
   )
 }
