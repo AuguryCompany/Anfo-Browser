@@ -30,12 +30,13 @@
   height: 2.6rem; align-items: center; gap: 0.25rem;
   padding-inline: max(1rem, calc((100% - 72rem) / 2));
   overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+  scroll-padding-inline-end: 3rem; /* yapışık + düğmesi son sekmeyi örtmesin */
 }
 .ts-strip::-webkit-scrollbar { display: none; }
 
 .ts-tab {
   position: relative; display: flex; align-items: center; flex: 0 1 14rem;
-  min-width: 6rem; max-width: 14rem; height: 2.1rem; border-radius: var(--r-sm);
+  min-width: 7.5rem; max-width: 14rem; height: 2.1rem; border-radius: var(--r-sm);
   background: transparent; touch-action: pan-x; user-select: none; cursor: default;
   transition: background 0.25s, translate 0.35s var(--spring), opacity 0.3s;
 }
@@ -71,6 +72,12 @@
   transition: background 0.2s, color 0.2s;
 }
 .ts-add:hover { background: var(--frost); color: var(--text); }
+/* Çok sekmede şerit kayar; + düğmesi sağ kenara yapışık kalır, hep görünür (arkası şerit renginde). */
+.ts-strip > .ts-add {
+  position: sticky; right: 0; z-index: 3; margin-left: auto;
+  box-shadow: -1.2rem 0 1rem -0.2rem var(--bg); background: var(--bg);
+}
+.ts-strip > .ts-add:hover { background: color-mix(in oklab, var(--bg) 80%, var(--text) 8%); }
 
 @media (min-width: 900px) {
   .ts-strip { display: flex; }
