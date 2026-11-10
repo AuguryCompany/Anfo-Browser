@@ -1,0 +1,26 @@
+# bağımlılıklar ve derleme çıktıları
+node_modules/
+dist/
+yayin/
+
+# Android derleme ve yerel ayarlar
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/app/src/main/assets/public/
+android/capacitor-cordova-android-plugins/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# editör / yerel araç ayarları
+.claude/
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
+.env
+.env.*

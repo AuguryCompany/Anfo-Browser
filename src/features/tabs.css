@@ -1,0 +1,80 @@
+/* ---------- çark: sekme satırları (Alan.jsx > Wheel) ---------- */
+.alan .wheel-row {
+  display: flex; align-items: center; gap: 0.6rem; min-width: 0;
+  touch-action: pan-y; user-select: none;
+  transition: translate 0.4s var(--spring), opacity 0.3s;
+}
+.alan .wheel-row[data-drag] { transition: none; }
+
+/* kapat düğmesi her satırda görünür; merkezde ve odakta/üzerine gelince tam */
+.alan .wheel-x {
+  width: 2.5rem; height: 2.5rem; min-width: 2.5rem; margin: -0.3rem 0;
+  animation: none; opacity: 0.45;
+  transition: opacity 0.2s, background 0.2s, color 0.2s;
+}
+.alan .wheel-item[data-center] .wheel-x,
+.alan .wheel-x:hover,
+.alan .wheel-x:focus-visible { opacity: 1; }
+
+/* aktif sekme: kalın metin + küçük vurgu noktası */
+.alan .wheel-item[data-active] .wheel-main span { font-weight: 600; color: var(--text); }
+.alan .wheel-item[data-active] .wheel-main span::before {
+  content: ''; display: inline-block; width: 0.38rem; height: 0.38rem; margin-right: 0.5rem;
+  border-radius: 50%; background: var(--accent); vertical-align: 0.14em;
+}
+
+/* ---------- üst sekme şeridi (TabStrip.jsx), yalnızca geniş ekranlarda ---------- */
+.ts-strip {
+  display: none;
+  position: absolute; top: 0; left: 0; right: 0; z-index: 7;
+  height: 2.6rem; align-items: center; gap: 0.25rem;
+  padding-inline: max(1rem, calc((100% - 72rem) / 2));
+  overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+}
+.ts-strip::-webkit-scrollbar { display: none; }
+
+.ts-tab {
+  position: relative; display: flex; align-items: center; flex: 0 1 14rem;
+  min-width: 6rem; max-width: 14rem; height: 2.1rem; border-radius: var(--r-sm);
+  background: transparent; touch-action: pan-x; user-select: none; cursor: default;
+  transition: background 0.25s, translate 0.35s var(--spring), opacity 0.3s;
+}
+.ts-tab:hover { background: var(--frost); }
+.ts-tab[data-active] { background: var(--frost-2); }
+.ts-tab[data-drag] { transition: none; z-index: 2; background: var(--frost-2); }
+
+.ts-main {
+  flex: 1; min-width: 0; height: 100%; display: flex; align-items: center; gap: 0.5rem;
+  padding: 0 0.4rem 0 0.7rem; background: none; color: var(--muted);
+  font-size: 0.8125rem; letter-spacing: -0.01em; text-align: left;
+  transition: opacity 0.3s, color 0.2s;
+}
+.ts-main > * { flex: none; }
+.ts-main span { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ts-tab[data-active] .ts-main { color: var(--text); font-weight: 600; }
+.ts-tab[data-asleep] .ts-main { opacity: 0.5; }
+.ts-mote { width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--accent); opacity: 0.7; }
+
+.ts-x {
+  flex: none; display: grid; place-items: center; width: 1.6rem; height: 1.6rem; margin-right: 0.3rem;
+  border-radius: 50%; color: var(--muted); opacity: 0;
+  transition: opacity 0.2s, background 0.2s, color 0.2s;
+}
+.ts-tab:hover .ts-x,
+.ts-tab[data-active] .ts-x,
+.ts-x:focus-visible { opacity: 1; }
+.ts-x:hover { background: var(--frost-2); color: var(--text); }
+
+.ts-add {
+  flex: none; display: grid; place-items: center; width: 2.1rem; height: 2.1rem;
+  border-radius: var(--r-sm); background: transparent; color: var(--muted);
+  transition: background 0.2s, color 0.2s;
+}
+.ts-add:hover { background: var(--frost); color: var(--text); }
+
+@media (min-width: 900px) {
+  .ts-strip { display: flex; }
+  .app:has(.ts-strip) { --strip-tabs: 3.2rem; }
+  /* toplam üst şerit: sekme şeridi + araç çubuğu (toolbar.css tanımlar) */
+  .app { --strip: calc(var(--strip-tabs, 0rem) + var(--strip-tool, 0rem)); }
+}

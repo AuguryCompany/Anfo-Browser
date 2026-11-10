@@ -1,0 +1,50 @@
+/* Ayarlar ekranının ek kartları (Temalar, Ana sayfa, Kısayollar, Bağlantılar). Sınıf öneki: .sx- */
+
+.sx-themes { display: flex; gap: 0.6rem; max-width: 100%; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; padding: 2px; }
+.sx-themes::-webkit-scrollbar { display: none; }
+.sx-theme { flex: 0 0 6.6rem; display: flex; flex-direction: column; gap: 0.45rem; scroll-snap-align: start; text-align: left; color: var(--muted); font-size: 0.72rem; transition: color 0.3s; }
+.sx-theme[aria-pressed='true'] { color: var(--text); }
+.sx-theme-view { position: relative; display: block; aspect-ratio: 1.15; border-radius: var(--r-sm); background: #000; overflow: hidden; transition: scale 0.4s var(--spring); }
+.sx-theme:active .sx-theme-view { scale: 0.95; }
+.sx-theme-name { display: flex; align-items: center; white-space: nowrap; }
+.sx-theme-name::before { content: ''; flex: none; width: 0.4rem; height: 0.4rem; margin-right: 0.4rem; border-radius: 50%; background: var(--accent); scale: 0; transition: scale 0.4s var(--spring); }
+.sx-theme[aria-pressed='true'] .sx-theme-name::before { scale: 1; }
+
+.sx-list { display: flex; flex-direction: column; gap: 0.3rem; }
+.sx-row { min-height: 2.4rem; }
+.field.line > .sx-ctl { flex-direction: row; align-items: center; gap: 0.35rem; }
+.sx-icon { flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: var(--r-sm); background: var(--frost); color: var(--muted); transition: color 0.3s, background 0.3s, opacity 0.3s; }
+.sx-icon:not(:disabled):hover { color: var(--text); background: var(--frost-2); }
+.sx-icon:disabled { opacity: 0.3; }
+
+.sx-wall { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.9rem; }
+.sx-wall img { flex: none; width: 4.4rem; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--r-sm); }
+.sx-wall .link { font-size: 0.8125rem; }
+
+.sx-note code { font-family: ui-monospace, Consolas, monospace; font-size: 0.95em; color: var(--text); }
+.sx-bangs { display: flex; flex-direction: column; gap: 0.3rem; }
+.sx-bang { display: flex; align-items: center; gap: 0.55rem; min-height: 2.5rem; padding: 0 0.25rem 0 0.6rem; border-radius: var(--r-sm); background: var(--frost); min-width: 0; }
+.sx-k { flex: none; padding: 0.2rem 0.45rem; border-radius: 6px; background: rgb(0 0 0 / 0.35); color: var(--accent); font-family: ui-monospace, Consolas, monospace; font-size: 0.72rem; }
+.sx-label { flex: none; max-width: 6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; }
+.sx-url { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.7rem; }
+
+.sx-form { display: grid; grid-template-columns: minmax(0, 5.5rem) minmax(0, 1fr); gap: 0.4rem; }
+.sx-form .text { min-width: 0; width: 100%; }
+.sx-form .sx-wide { grid-column: 1 / -1; }
+.sx-form button { justify-self: end; }
+.sx-form button:disabled { opacity: 0.4; }
+
+/* hata ve ipuçları: kenar çizgisi ya da gölge yok */
+.sx-err { color: #ff8fa3; font-size: 0.8125rem; line-height: 1.4; margin: 0; }
+
+/* gizli dosya girişi: ekranda yok, klavyeyle odaklanılabilir */
+.sx-sr {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; opacity: 0;
+}
+.sx-file { position: relative; display: inline-flex; align-items: center; }
+.sx-file:focus-within { background: var(--frost); border-radius: var(--r-sm); }
+
+/* dokunma hedefleri en az 40px */
+.settings .links .link,
+.settings .sx-file { min-height: 2.5rem; display: inline-flex; align-items: center; }

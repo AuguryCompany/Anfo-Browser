@@ -1,0 +1,101 @@
+/* Vikipedi görüntüleyici. Sınıf öneki .wk-; genel okuma tipografisi .prose'dan gelir. */
+
+/* Kaydırılabilir kolon: içerik en fazla 44rem, ortalı. */
+.wk-inner { scroll-behavior: smooth; }
+.wk-col { width: 100%; max-width: 44rem; margin-inline: auto; min-width: 0; }
+
+/* Üst bölüm */
+.wk-head { display: flex; align-items: flex-start; gap: 1.25rem; margin: 0 0 1.4rem; padding-inline: 0.35rem; animation: settle 0.7s var(--spring) both; }
+.wk-hgroup { flex: 1; min-width: 0; }
+.wk-meta { margin: 0 0 0.6rem; color: var(--muted); font-size: 0.6875rem; letter-spacing: 0.14em; text-transform: uppercase; }
+.wk-title { font-size: clamp(2rem, 8.5vw, 3.2rem); font-weight: 250; letter-spacing: -0.045em; line-height: 1.08; overflow-wrap: anywhere; }
+.wk-desc { margin-top: 0.6rem; color: var(--muted); font-size: 0.95rem; line-height: 1.5; }
+.wk-thumb { flex: none; width: clamp(5.5rem, 24vw, 8rem); aspect-ratio: 1; object-fit: cover; border-radius: var(--r-in); background: var(--frost); }
+
+/* İçindekiler */
+.wk-toc { margin: 0 0 1.6rem; border-radius: var(--r-in); background: var(--frost); transition: background 0.3s; animation: settle 0.7s var(--spring) 60ms both; }
+.wk-toc[open] { background: var(--frost-2); }
+.wk-toc summary { display: flex; align-items: center; justify-content: space-between; min-height: 2.8rem; padding: 0 1.1rem; cursor: pointer; list-style: none; font-size: 0.875rem; color: var(--text); }
+.wk-toc summary::-webkit-details-marker { display: none; }
+.wk-toc summary::after { content: '+'; color: var(--muted); font-size: 1.05rem; transition: rotate 0.3s var(--spring); }
+.wk-toc[open] summary::after { content: '\2212'; }
+.wk-toc ol { list-style: none; margin: 0; padding: 0 0.5rem 0.6rem; counter-reset: wk; }
+.wk-toc li { margin: 0; }
+.wk-toc-item { display: block; width: 100%; padding: 0.5rem 0.7rem; border-radius: var(--r-sm); background: transparent; color: var(--muted); font: inherit; font-size: 0.875rem; text-align: left; cursor: pointer; transition: background 0.25s, color 0.25s; }
+.wk-toc-item:hover { background: var(--frost); color: var(--text); }
+
+/* Ham sayfa bağlantısı */
+.wk-raw-row { margin: 0 0 1.4rem; padding-inline: 0.35rem; }
+.wk-raw { background: none; border: 0; padding: 0; color: var(--muted); font: inherit; font-size: 0.8125rem; text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 0.25em; cursor: pointer; transition: color 0.2s; }
+.wk-raw:hover { color: var(--text); }
+
+/* İçerik */
+.wk-body { min-width: 0; }
+.wk-body section { min-width: 0; }
+.wk-body h2 { scroll-margin-top: 1.5rem; }
+.wk-body h3 { margin: 1.5em 0 0.55em; font-size: 1.12rem; font-weight: 500; letter-spacing: -0.02em; line-height: 1.3; scroll-margin-top: 1.5rem; }
+.wk-body h2 + h3 { margin-top: 0.8em; }
+.wk-body ul, .wk-body ol { margin: 0 0 1.15em; padding-left: 1.3em; }
+.wk-body li { margin: 0.35em 0; font-size: 1.0625rem; line-height: 1.75; color: color-mix(in oklab, var(--text) 86%, transparent); overflow-wrap: anywhere; }
+.wk-body a { color: var(--text); text-decoration: underline; text-decoration-color: var(--line-2); text-underline-offset: 0.25em; transition: text-decoration-color 0.2s; }
+.wk-body a:hover { text-decoration-color: var(--accent); }
+.wk-body a.new { color: var(--muted); }
+.wk-body a.external::after { content: none; }
+
+.wk-body .hatnote { margin: 0 0 1.1em; color: var(--muted); font-size: 0.8125rem; line-height: 1.6; font-style: normal; }
+.wk-body .hatnote a { color: var(--muted); }
+
+/* Köşeli parantezli dipnot işaretleri: küçük ama okunur */
+.wk-body sup.reference { font-size: 0.68em; line-height: 0; vertical-align: super; }
+.wk-body sup.reference a { color: var(--muted); text-decoration: none; }
+.wk-body sup.reference .cite-bracket { color: var(--muted); }
+
+/* Görseller */
+.wk-body img { max-width: 100%; height: auto; border-radius: var(--r-sm); }
+.wk-body figure { margin: 0 0 1.3em; max-width: 100%; }
+.wk-body figure img { display: block; }
+.wk-body figcaption { margin-top: 0.5rem; color: var(--muted); font-size: 0.8125rem; line-height: 1.5; }
+.wk-body .mwe-math-fallback-image-inline { filter: invert(1) hue-rotate(180deg); }
+
+/* Tablolar: buğulu kart, çizgisiz. Kapsayıcı yatay kaydırır. */
+.wk-tblwrap { margin: 0 0 1.3em; max-width: 100%; overflow-x: auto; border-radius: var(--r-sm); background: var(--frost); scrollbar-width: thin; }
+.wk-body table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.875rem; line-height: 1.55; color: color-mix(in oklab, var(--text) 88%, transparent); }
+.wk-body th, .wk-body td { padding: 0.45rem 0.65rem; border: 0; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+.wk-body caption { padding: 0.6rem; color: var(--muted); font-size: 0.8125rem; }
+.wk-body tbody tr:nth-child(even) > * { background: color-mix(in oklab, var(--text) 3.5%, transparent); }
+.wk-body th { font-weight: 500; color: var(--text); }
+.wk-body thead th { color: var(--muted); font-weight: 500; }
+
+/* Infobox: telefonda tam genişlik, masaüstünde sağa yüzen 20rem kart */
+.wk-tblwrap.wk-infobox { margin: 0 0 1.2rem; }
+.wk-infobox table { font-size: 0.8125rem; }
+.wk-infobox th[colspan], .wk-infobox .infobox-above, .wk-infobox .infobox-title { font-size: 0.95rem; }
+@media (min-width: 1000px) {
+  .wk-tblwrap.wk-infobox { float: right; width: 20rem; margin: 0.2rem 0 1rem 1.5rem; }
+}
+
+/* Kaynakça: küçük punto, geniş ekranda iki sütun */
+.wk-body .references, .wk-body ol.references { margin: 0 0 1.2em; padding-left: 1.4em; font-size: 0.8125rem; line-height: 1.6; color: var(--muted); }
+.wk-body .references li { margin: 0 0 0.45em; font-size: inherit; line-height: inherit; color: inherit; break-inside: avoid; }
+.wk-body .references a { color: var(--muted); }
+.wk-body .references .mw-cite-backlink { display: none; }
+@media (min-width: 860px) {
+  .wk-body .references { column-count: 2; column-gap: 2rem; }
+}
+
+/* Yükleniyor iskeleti */
+.wk-skel { padding-inline: 0.35rem; }
+.wk-line { position: relative; overflow: hidden; height: 0.85rem; margin: 0 0 0.85rem; border-radius: 99px; background: var(--frost); animation: settle 0.6s var(--spring) both; animation-delay: calc(var(--i, 0) * 60ms); }
+.wk-line.ghost { height: 0.85rem; }
+.wk-line-title { height: 2.6rem; width: 62%; margin: 0.4rem 0 1.4rem; border-radius: var(--r-sm); }
+.wk-line-title.ghost { height: 2.6rem; }
+
+/* Hata */
+.wk-error .wk-title { font-size: clamp(1.75rem, 7vw, 2.6rem); }
+.wk-error-row { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 1.2rem; }
+
+/* Dar ekran */
+@media (max-width: 520px) {
+  .wk-head { gap: 0.9rem; }
+  .wk-body th, .wk-body td { padding: 0.4rem 0.5rem; }
+}

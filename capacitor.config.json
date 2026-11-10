@@ -1,0 +1,7 @@
+{
+  "appId": "app.anfo.browser",
+  "appName": "Anfo",
+  "webDir": "dist",
+  "backgroundColor": "#000000",
+  "android": { "backgroundColor": "#000000" }
+}

@@ -1,0 +1,193 @@
+/* Animasyonlu sahneler: space, rain, snow, stars.
+   Kurallar: yalnızca transform/opacity canlandırılır; JS döngüsü ve canvas yok.
+   Parçacıklar Aura.jsx içinde bir kez üretilir, konum/gecikme/süre CSS değişkenleriyle gelir.
+   Renk: tek aile, var(--glow) ve karışımları. Arka plan siyah kalır.
+   Tüm kurallar .aura.scene ile kapsanır; mevcut türlerin (mist, glow, ...) kurallarına dokunmaz. */
+
+.aura.scene {
+  --c: var(--glow, #a9c4ff);
+  /* parçacık konumları yüzde değil, gerçek alana göre (cqw/cqh) hesaplanabilsin diye */
+  container-type: size;
+}
+.aura.scene > div { position: absolute; pointer-events: none; }
+
+/* ---------- space: üç katman kayan yıldız alanı ---------- */
+.aura.scene .sc-bob {
+  left: 0; right: 0; top: -4%; height: 108%;
+  animation: sc-bob calc(60s * var(--tempo, 1)) ease-in-out infinite alternate;
+}
+/* katman 2x genişlikte; içerik her 50%'de (= bir ekran genişliği) tekrar eder, döngü kesintisiz */
+.aura.scene .sc-layer {
+  left: 0; top: 0; width: 200%; height: 100%;
+  animation: sc-slide calc(var(--dur) * var(--tempo, 1)) linear infinite;
+}
+.aura.scene .sc-far  { --dur: 240s; --sz: 1px;   --c: color-mix(in oklab, var(--glow, #a9c4ff) 55%, #000); }
+.aura.scene .sc-mid  { --dur: 160s; --sz: 1.5px; --c: var(--glow, #a9c4ff); }
+.aura.scene .sc-near { --dur: 100s; --sz: 2px;   --c: color-mix(in oklab, var(--glow, #a9c4ff) 80%, #fff); }
+
+.aura.scene .sc-star {
+  left: calc(var(--x) * 1%); top: calc(var(--y) * 1%);
+  width: var(--sz, 1.5px); height: var(--sz, 1.5px);
+  border-radius: 50%;
+  background: var(--c);
+  animation: sc-twinkle calc(var(--t) * 1s * var(--tempo, 1)) ease-in-out infinite;
+  animation-delay: calc(var(--d) * -1s);
+}
+
+/* tek kayan yıldız: ~14 sn'de bir, yaklaşık 1 sn'lik çapraz kayıp; geri kalan sürede görünmez */
+.aura.scene .sc-shoot {
+  left: 14%; top: 10%;
+  width: 90px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c));
+  transform-origin: 0 50%;
+  opacity: 0;
+  animation: sc-shoot calc(14s * var(--tempo, 1)) linear infinite;
+}
+
+/* çok silik galaksi/nebula lekesi (gauss, glow'un %20'si) */
+.aura.scene .sc-nebula {
+  left: 52%; top: 22%; width: 72%; height: 58%;
+  border-radius: 50%;
+  rotate: -18deg;
+  background: radial-gradient(closest-side in oklab,
+    color-mix(in oklab, var(--glow, #a9c4ff) 20%, transparent) 0%,
+    color-mix(in oklab, var(--glow, #a9c4ff) 15%, transparent) 30%,
+    color-mix(in oklab, var(--glow, #a9c4ff) 8%, transparent) 60%,
+    color-mix(in oklab, var(--glow, #a9c4ff) 2%, transparent) 85%,
+    transparent 100%);
+}
+
+/* ---------- rain: eğik yağmur çizgileri ---------- */
+/* Açı, hız, uzunluk, opaklık ve bulanıklık Aura.jsx'ten CSS değişkeni olarak gelir (ayarlardan). */
+.aura.scene .sc-rainwrap {
+  inset: -20%;
+  transform: rotate(calc(var(--rain-angle, 12) * 1deg));
+}
+/* Derinlik katmanları: bulanıklık katman kapsayıcısında tek filtre (parçacık başına filtre yok). */
+.aura.scene .sc-rainlayer { position: absolute; inset: 0; }
+.aura.scene .sc-rl-far {
+  --sf: 1.4; --lf: 0.6; --wf: 0.6px;
+  filter: blur(calc(var(--rain-blur, 2.5px) * 1.4));
+  opacity: calc(var(--rain-op, 0.45) * 0.5);
+}
+.aura.scene .sc-rl-mid {
+  --sf: 1; --lf: 0.9; --wf: 1px;
+  filter: blur(calc(var(--rain-blur, 2.5px) * 0.8));
+  opacity: calc(var(--rain-op, 0.45) * 0.8);
+}
+.aura.scene .sc-rl-near {
+  --sf: 0.7; --lf: 1.25; --wf: 1.4px;
+  filter: blur(calc(var(--rain-blur, 2.5px) * 0.3));
+  opacity: var(--rain-op, 0.45);
+}
+.aura.scene .sc-drop {
+  left: calc(var(--x) * 1%); top: 0;
+  width: var(--wf, 1px);
+  height: calc(var(--h) * 1px * var(--lf, 1) * var(--rain-len, 1));
+  background: linear-gradient(to bottom, transparent, color-mix(in oklab, var(--c) 35%, transparent));
+  animation: sc-rain calc(var(--t) * 1s * var(--sf, 1) * var(--tempo, 1) * var(--rain-speed, 1)) linear infinite;
+  animation-delay: calc(var(--d) * -1s * var(--sf, 1));
+}
+/* ıslak cam: alt %30'da çok hafif glow sisi (statik) */
+.aura.scene .sc-rainmist {
+  left: 0; right: 0; bottom: 0; height: 30%;
+  background: linear-gradient(to top, color-mix(in oklab, var(--glow, #a9c4ff) 6%, transparent), transparent);
+}
+/* tasarruf modunda yağmur bulanıklığı kapalı */
+:root[data-perf='saver'] .aura.scene[data-kind='rain'] .sc-rainlayer { filter: none; }
+
+/* ---------- snow: yumuşak kar taneleri ---------- */
+.aura.scene .sc-flake {
+  left: calc(var(--x) * 1%); top: 0;
+  width: calc(var(--s) * 1px); height: calc(var(--s) * 1px);
+  animation: sc-fall calc(var(--t) * 1s * var(--tempo, 1)) linear infinite;
+  animation-delay: calc(var(--d) * -1s);
+}
+/* iç öğe yalnızca yatay salınır; dış öğe düşer */
+.aura.scene .sc-flake > div {
+  display: block; width: 100%; height: 100%;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--glow, #a9c4ff) 70%, #fff);
+  opacity: var(--o);
+  animation: sc-sway calc(var(--k) * 1s * var(--tempo, 1)) ease-in-out infinite alternate;
+}
+
+/* ---------- stars: hareketsiz, parıldayan yıldızlar + yavaş tek bulut ---------- */
+.aura.scene .sc-field { inset: 0; }
+.aura.scene .sc-cloud {
+  left: -12%; top: 18%; width: 84%; height: 62%;
+  border-radius: 50%;
+  background: radial-gradient(closest-side in oklab,
+    color-mix(in oklab, var(--glow, #a9c4ff) 22%, transparent) 0%,
+    color-mix(in oklab, var(--glow, #a9c4ff) 16%, transparent) 30%,
+    color-mix(in oklab, var(--glow, #a9c4ff) 8%, transparent) 60%,
+    color-mix(in oklab, var(--glow, #a9c4ff) 2%, transparent) 88%,
+    transparent 100%);
+  animation: sc-cloud calc(150s * var(--tempo, 1)) ease-in-out infinite alternate;
+}
+
+/* ---------- keyframes (yalnızca transform / opacity) ---------- */
+@keyframes sc-bob {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(0, -3%, 0); }
+}
+@keyframes sc-slide {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+@keyframes sc-twinkle {
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 1; }
+}
+@keyframes sc-shoot {
+  0%   { opacity: 0; transform: translate3d(0, 0, 0) rotate(30deg); }
+  1%   { opacity: 0.9; transform: translate3d(0, 0, 0) rotate(30deg); }
+  7%   { opacity: 0; transform: translate3d(38cqw, 24cqh, 0) rotate(30deg); }
+  100% { opacity: 0; transform: translate3d(38cqw, 24cqh, 0) rotate(30deg); }
+}
+@keyframes sc-rain {
+  from { transform: translate3d(0, -25cqh, 0); }
+  to   { transform: translate3d(0, 125cqh, 0); }
+}
+@keyframes sc-fall {
+  from { transform: translate3d(0, -10cqh, 0); }
+  to   { transform: translate3d(0, 110cqh, 0); }
+}
+@keyframes sc-sway {
+  from { transform: translate3d(calc(var(--w) * -1px), 0, 0); }
+  to   { transform: translate3d(calc(var(--w) * 1px), 0, 0); }
+}
+@keyframes sc-cloud {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(8%, -4%, 0) scale(1.1); }
+}
+
+/* ---------- durdurma: ayar önizlemesi (still), tasarruf modu, ayar/hızı sıfır, arka plan ---------- */
+/* hareketsiz kalan yağmur/kar, ekranda dağınık ama sabit konumlarda görünür */
+.aura.scene[data-still] .sc-drop,
+.aura.scene[data-still] .sc-flake,
+:root[data-perf='saver'] .aura.scene .sc-drop,
+:root[data-perf='saver'] .aura.scene .sc-flake,
+:root[data-still] .aura.scene .sc-drop,
+:root[data-still] .aura.scene .sc-flake,
+[data-motion='off'] .aura.scene .sc-drop,
+[data-motion='off'] .aura.scene .sc-flake {
+  top: calc(var(--y) * 1%);
+}
+.aura.scene[data-still] *,
+:root[data-perf='saver'] .aura.scene *,
+:root[data-still] .aura.scene * {
+  animation: none;
+}
+:root[data-perf='saver'] .aura.scene .sc-shoot { opacity: 0; }
+
+:root[data-hidden] .aura.scene * { animation-play-state: paused; }
+.app[data-ui='settings'] .home .aura.scene *,
+.app[data-ui='github'] .home .aura.scene *,
+.app[data-ui='ext'] .home .aura.scene *,
+.app[data-ui='notifs'] .home .aura.scene * { animation-play-state: paused; }
+
+/* Sayfalarda (Results/Settings vb.) sahne yoğunluğu yarıya iner. */
+.page:not(.home) .aura.scene .sc-star:nth-child(2n),
+.page:not(.home) .aura.scene .sc-drop:nth-child(2n),
+.page:not(.home) .aura.scene .sc-flake:nth-child(2n) { display: none; }

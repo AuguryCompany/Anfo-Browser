@@ -1,0 +1,191 @@
+/* ---------- ana sayfa widget'ları ---------- */
+/* kenar çizgisi ve gölge yok; yüzey .card'dan (buğulu) gelir */
+
+.widgets {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0.28rem;
+  width: min(100%, 37rem); margin-inline: auto; min-width: 0;
+}
+@media (max-width: 519px) {
+  .widgets { grid-template-columns: minmax(0, 1fr); }
+}
+.widgets > .wg {
+  position: relative; min-width: 0; display: flex; flex-direction: column; gap: 0.75rem;
+  padding: 1rem 1.1rem;
+  border-radius: var(--r-in);
+}
+.widgets > .wg:first-child { border-top-left-radius: var(--radius); border-top-right-radius: var(--radius); }
+.widgets > .wg:last-child { border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); }
+
+.wg .wg-label {
+  display: block; color: var(--muted);
+  font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.wg .wg-muted, .wg-muted { color: var(--muted); font-size: 0.8125rem; }
+
+/* kaldır düğmesi: yalnızca hover'da; dokunmatikte düşük opaklıkla her zaman */
+.wg-x {
+  position: absolute; top: 0.2rem; right: 0.2rem;
+  width: 2.5rem; height: 2.5rem; display: grid; place-items: center;
+  padding: 0; border: 0; border-radius: 50%; background: none;
+  color: var(--muted); opacity: 0; cursor: pointer;
+  transition: opacity 0.25s, background 0.25s, color 0.25s;
+}
+.wg:hover > .wg-x, .wg:focus-within > .wg-x, .wg-x:focus-visible { opacity: 0.75; }
+.wg-x:hover { opacity: 1; background: var(--frost); color: var(--text); }
+@media (hover: none) {
+  .wg-x { opacity: 0.4; }
+}
+
+/* hava durumu: tek satır; başlık etiketi bu kartta gizli (satır zaten adını taşıyor) */
+.wg-weather > .wg-label { display: none; }
+.wg-wx { display: flex; flex-direction: column; min-width: 0; }
+.wg-row {
+  min-height: 3.2rem; display: flex; align-items: center; justify-content: space-between; gap: 0.6rem;
+  min-width: 0; padding-right: 2rem; /* kaldır düğmesi için yer */
+}
+button.wg-row {
+  width: 100%; margin: 0; border: 0; background: none; color: inherit; font: inherit;
+  text-align: left; cursor: pointer;
+}
+.wg-main { display: flex; align-items: center; gap: 0.5rem; min-width: 0; flex: 1 1 auto; }
+.wg-ico { flex: none; color: var(--muted); }
+.wg-temp {
+  flex: none; font-size: 1.6rem; font-weight: 250; line-height: 1; letter-spacing: -0.03em;
+  color: var(--text); font-variant-numeric: tabular-nums;
+}
+.wg-status {
+  min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  color: var(--muted); font-size: 0.75rem;
+}
+.wg-side {
+  flex: none; max-width: 45%; min-width: 0;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 0.15rem;
+}
+.wg-place {
+  max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  color: var(--muted); font-size: 0.6875rem;
+}
+.wg-mm { color: var(--muted); font-size: 0.6875rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.wg-lead { flex: none; white-space: nowrap; }
+.wg-form { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 0.4rem; }
+.wg-city { flex: 1 1 auto; min-width: 0; width: auto; height: 2.5rem; font-size: 0.8125rem; }
+.wg-locate {
+  flex: none; width: 2.5rem; height: 2.5rem; display: grid; place-items: center;
+  padding: 0; border: 0; border-radius: 50%; background: var(--frost); color: var(--muted);
+  cursor: pointer; transition: background 0.3s, color 0.3s;
+}
+.wg-locate:hover:not(:disabled) { background: var(--frost-2); color: var(--text); }
+.wg-locate:disabled { opacity: 0.5; cursor: default; }
+.wg-hint { color: var(--muted); font-size: 0.6875rem; line-height: 1.3; }
+.wg-link {
+  min-height: 2.5rem; display: inline-flex; align-items: center;
+  padding: 0; border: 0; background: none; font: inherit; font-size: 0.75rem;
+  color: var(--accent); cursor: pointer;
+}
+.wg-link:hover { text-decoration: underline; }
+.wg-skel {
+  display: block; width: 40%; height: 3px; border-radius: 99px; background: var(--frost-2);
+  animation: wg-breathe 1.2s ease-in-out infinite alternate;
+}
+@keyframes wg-breathe {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+
+/* açılır bölüm: 0fr → 1fr */
+.wg-more {
+  display: grid; grid-template-rows: 0fr;
+  transition: grid-template-rows 0.35s ease;
+}
+.wg-more.is-open { grid-template-rows: 1fr; }
+.wg-more-in {
+  min-height: 0; overflow: hidden; visibility: hidden;
+  transition: visibility 0.35s;
+}
+.wg-more.is-open .wg-more-in { visibility: visible; }
+.wg-more-in > .wg-hours,
+.wg-more-in > .wg-days,
+.wg-more-in > .wg-foot { margin-top: 0.75rem; }
+.wg-foot { display: flex; align-items: center; min-width: 0; }
+.wg-foot > .wg-form { width: 100%; }
+
+.wg-hours {
+  display: flex; gap: 0.2rem; min-width: 0;
+  overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  margin-inline: -0.2rem; padding-inline: 0.2rem;
+}
+.wg-hours::-webkit-scrollbar { display: none; }
+.wg-hour {
+  flex: none; width: 3.3rem; display: flex; flex-direction: column; align-items: center; gap: 0.35rem;
+  padding: 0.55rem 0; border-radius: var(--r-in); background: var(--frost);
+  color: var(--muted); font-size: 0.6875rem; font-variant-numeric: tabular-nums;
+}
+.wg-hour b { color: var(--text); font-weight: 500; font-size: 0.8125rem; }
+
+.wg-days { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.42rem; }
+.wg-day-row {
+  display: grid; grid-template-columns: 3.4rem 1.1rem 2.2rem minmax(0, 1fr) 2.2rem; align-items: center; gap: 0.5rem;
+  font-size: 0.8125rem; font-variant-numeric: tabular-nums;
+}
+.wg-day-row > span:first-child { color: var(--text); }
+.wg-day-row > svg { color: var(--muted); }
+.wg-min { text-align: right; color: var(--muted); }
+.wg-max { color: var(--text); }
+
+/* ince çubuk: düz renk, vurgu rengi */
+.wg-bar { position: relative; display: block; height: 3px; border-radius: 99px; background: var(--frost-2); overflow: hidden; }
+.wg-bar i { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: var(--accent); }
+
+/* odak sayacı */
+.wg-focus { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.wg-ring-box { position: relative; flex: none; width: 7.5rem; height: 7.5rem; }
+.wg-ring { display: block; width: 100%; height: 100%; transform: rotate(-90deg); }
+.wg-ring-bg { fill: none; stroke: var(--frost-2); stroke-width: 5; }
+.wg-ring-fg {
+  fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round;
+  transition: stroke-dashoffset 0.9s linear;
+}
+.wg-ring-time {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem;
+}
+.wg-ring-time b {
+  font-size: 1.5rem; font-weight: 250; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;
+}
+.wg-mode { color: var(--muted); font-size: 0.625rem; letter-spacing: 0.12em; text-transform: uppercase; }
+.wg-focus-side { flex: 1; min-width: 11rem; display: flex; flex-direction: column; gap: 0.7rem; }
+.wg-focus .seg { width: 100%; }
+.wg-controls { display: flex; gap: 0.5rem; }
+.wg-btn {
+  width: 2.6rem; height: 2.6rem; display: grid; place-items: center; border-radius: 50%;
+  background: var(--frost); color: var(--text); transition: background 0.3s;
+}
+.wg-btn:hover:not(:disabled) { background: var(--frost-2); }
+.wg-btn.is-main { background: color-mix(in oklab, var(--accent) 22%, var(--s2)); }
+
+/* hızlı not */
+textarea.wg-notes {
+  display: block; width: 100%; min-height: 6rem; padding: 0; resize: none;
+  background: transparent; border: 0; outline: 0; color: var(--text);
+  font: inherit; line-height: 1.55;
+}
+textarea.wg-notes::placeholder { color: var(--muted); }
+
+/* istatistik */
+.wg-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.wg-stat { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.wg-stat b {
+  font-size: clamp(1.6rem, 8vw, 2.3rem); font-weight: 200; letter-spacing: -0.04em; line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.wg .wg-stat small { display: block; color: var(--muted); font-size: 0.6875rem; line-height: 1.3; }
+
+/* takvim */
+.wg-date-top { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
+.wg-date-top > b {
+  font-size: 3.4rem; font-weight: 200; line-height: 1; letter-spacing: -0.045em; font-variant-numeric: tabular-nums;
+}
+.wg-date-top > div { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.wg-date-top > div > span { font-size: 1rem; }
+.wg-date-top em { font-style: normal; color: var(--muted); font-size: 0.8125rem; text-transform: capitalize; }
+.wg-date { display: flex; flex-direction: column; gap: 0.6rem; }
+.wg .wg-date small { display: block; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }

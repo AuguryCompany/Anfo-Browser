@@ -1,0 +1,47 @@
+/* Sayfada bul: adanın hemen üstünde buğulu hap çubuk. Kenarsız, gölgesiz. */
+.find-bar {
+  position: absolute; z-index: 22; left: 0; right: 0; margin: 0 auto;
+  bottom: calc(var(--dock) + 0.4rem);
+  width: min(100% - 1.5rem, 26rem);
+  animation: settle 0.7s var(--spring) both;
+}
+
+.find-pill {
+  display: flex; align-items: center; gap: 0.25rem;
+  height: 3rem; padding: 0 0.25rem 0 1rem; border-radius: 99px;
+  background: var(--frost-2);
+  -webkit-backdrop-filter: blur(var(--blur, 18px)); backdrop-filter: blur(var(--blur, 18px));
+  transition: background 0.3s;
+}
+.find-pill[data-miss] { animation: find-shake 0.3s ease both; }
+
+@keyframes find-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+.find-input {
+  flex: 1; min-width: 0; height: 100%; padding: 0; margin: 0;
+  background: none; border: 0; outline: 0; box-shadow: none; border-radius: 0;
+  font: inherit; font-size: 0.9375rem; letter-spacing: 0;
+  color: var(--text); -webkit-appearance: none; appearance: none;
+}
+.find-input::placeholder { color: var(--muted); opacity: 1; }
+
+.find-count {
+  flex: none; min-width: 2.75rem; text-align: right;
+  font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums;
+}
+
+.find-btn {
+  -webkit-tap-highlight-color: transparent;
+  flex: none; width: 2.5rem; height: 2.5rem; padding: 0; margin: 0;
+  display: grid; place-items: center; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer;
+  transition: background 0.2s, color 0.2s, scale 0.3s var(--spring);
+}
+.find-btn:hover { background: var(--frost); color: var(--text); }
+.find-btn:active { scale: 0.9; }
+
+:root[data-perf='saver'] .find-pill { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--s2); }

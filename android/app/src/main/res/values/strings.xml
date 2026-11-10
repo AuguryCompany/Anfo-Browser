@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Anfo</string>
+    <string name="title_activity_main">Anfo</string>
+    <string name="package_name">app.anfo.browser</string>
+    <string name="custom_url_scheme">app.anfo.browser</string>
+</resources>

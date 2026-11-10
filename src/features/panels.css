@@ -1,0 +1,85 @@
+/* ---------- eklentiler (.ext) ---------- */
+.ext .card p,
+.notifs .card p {
+  display: block; margin: 0; overflow: visible;
+  -webkit-line-clamp: unset;
+  font-size: 0.75rem; line-height: 1.55; color: var(--muted);
+}
+.ext-sec {
+  margin: 1.2rem 0.35rem 0.1rem;
+  font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+}
+.ext-row { display: flex; align-items: center; gap: 0.9rem; min-width: 0; }
+.ext-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.2rem; }
+.ext-info > p { margin-top: 0.2rem; }
+.ext-name { font-size: 0.9375rem; font-weight: 500; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ext-site { font-size: 0.72rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ext-acts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; font-size: 0.8125rem; }
+.ext-acts .link { color: var(--muted); }
+.ext-form { display: flex; flex-direction: column; gap: 0.9rem; }
+.ext-form .field > span { font-size: 0.8125rem; }
+.ext-code {
+  width: 100%; min-height: 6.5rem; padding: 0.7rem 0.9rem; resize: vertical;
+  background: rgb(0 0 0 / 0.35); border: 0; border-radius: var(--r-in); outline: 0;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace; font-size: 0.78rem; line-height: 1.5; color: var(--text);
+  transition: background 0.2s;
+}
+.ext-code:focus { background: rgb(0 0 0 / 0.5); }
+.ext-form-acts { display: flex; justify-content: flex-end; gap: 1.4rem; font-size: 0.8125rem; }
+@media (max-width: 420px) {
+  .ext-row { flex-wrap: wrap; }
+  .ext-row .switch { margin-left: auto; }
+}
+
+/* ---------- bildirimler (.notifs) ---------- */
+.notifs .nf-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  margin: 0 0.35rem 1.4rem;
+}
+.notifs .nf-head h1 {
+  font-size: clamp(2rem, 8.5vw, 3.5rem); font-weight: 250; letter-spacing: -0.045em; line-height: 1.05;
+  animation: settle 0.7s var(--spring) both;
+}
+.nf-group { display: flex; flex-direction: column; gap: 0.28rem; }
+.nf-day {
+  margin: 1rem 0.35rem 0.4rem;
+  font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+}
+.nf-group > .stack > li { min-width: 0; }
+.nf-item {
+  display: flex; align-items: center; gap: 0.2rem; padding: 0.25rem;
+}
+.nf-dot {
+  position: absolute; left: 0.55rem; top: 50%; z-index: 1;
+  width: 0.4rem; height: 0.4rem; margin-top: -0.2rem; border-radius: 50%; background: var(--accent);
+}
+.nf-main {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 0.85rem;
+  padding: 0.7rem 0.6rem 0.7rem 1.1rem; border-radius: var(--r-in); text-align: left;
+  transition: background 0.2s;
+}
+.nf-main:hover { background: var(--frost-2); }
+.nf-ico {
+  flex: none; display: grid; place-items: center; width: 2.2rem; height: 2.2rem;
+  border-radius: 50%; background: var(--frost-2); color: var(--text);
+}
+.nf-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.nf-title { font-size: 0.9rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nf-body {
+  font-size: 0.78rem; line-height: 1.45; color: var(--muted);
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere;
+}
+.nf-time { font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.nf-x {
+  flex: none; display: grid; place-items: center; width: 2rem; height: 2rem; margin-right: 0.2rem;
+  border-radius: 50%; color: var(--muted); transition: background 0.2s, color 0.2s;
+}
+.nf-x:hover { background: var(--frost-2); color: var(--text); }
+.nf-empty {
+  display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+  margin-top: 22vh; text-align: center; color: var(--muted); font-size: 0.8rem;
+}
+.nf-quiet {
+  font-size: clamp(3rem, 14vw, 6rem); font-weight: 200; letter-spacing: -0.06em; line-height: 1; color: var(--text);
+  animation: settle 0.9s var(--spring) both;
+}
