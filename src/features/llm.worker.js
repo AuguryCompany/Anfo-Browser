@@ -20,7 +20,9 @@ let genDtype = null
 
 const post = (m) => self.postMessage(m)
 // ONNX Runtime oturum ayarları. 'load' mesajıyla değiştirilebilir (bellek deneyleri için: e2e/llm-mem.cjs).
-let sessionOptions
+// Graf optimizasyonu kapalı: 4 bit ağırlıklar açılışta 32 bite "katlanmaz". GitHub ölçümü (Qwen3 0.6B, WASM):
+// yükleme tepe belleği +4,6 GB → +3,4 GB, üretim +5,1 GB → +3,9 GB; üretim ~%30 yavaş.
+let sessionOptions = { graphOptimizationLevel: 'disabled' }
 
 // transformers.js varsayılan olarak WebGPU için derlenmiş 'asyncify' ORT yapısını yükler; o yapının işlemci
 // motorunda 4 bit gömme katmanı işlemi (GatherBlockQuantized) yok. WebGPU yoksa düz WASM yapısı kullanılır.
