@@ -246,7 +246,8 @@ h1, h2, h3, p, ul { margin: 0; padding: 0; list-style: none; font-weight: inheri
   .alan > .alan-tabs { width: 100%; }
   .alan .alan-x { right: max(0.75rem, calc((100% - 44rem) / 2 - 3.4rem)); }
   .alan > .alan-more { width: 100%; align-self: start; }
-  .alan > .aura { grid-column: 1 / -1; }
+  /* Aura ızgara yerleşimine katılmaz: mutlak konumlu öğe bir sütun aralığına yerleştirilirse kapsayıcısı o alan olur ve kenarlar görünür */
+  .alan > .aura { grid-column: auto; grid-row: auto; }
   /* sonuç kartları: daha hava alan iç boşluk, hover'da yumuşak kayma */
   .results .card { padding: 1.25rem 1.5rem; }
   a.card:hover, button.card:hover { translate: 0 -1px; }
