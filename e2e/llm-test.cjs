@@ -4,19 +4,26 @@
 const fs = require('fs')
 const path = require('path')
 const { chromium } = require('playwright')
-const { execSync } = require('child_process')
+const { exec } = require('child_process')
 
 // Tarayıcının renderer süreçlerinin toplam yerleşik belleği (MB). Model worker'ı renderer içinde çalışır.
-function rendererMB() {
-  try {
-    const out = execSync("ps -eo rss,args | grep -- '--type=renderer' | grep -v grep", { encoding: 'utf8' })
-    return Math.round(out.trim().split('\n').reduce((n, l) => n + (parseInt(l, 10) || 0), 0) / 1024)
-  } catch {
-    return 0
-  }
-}
+// Eşzamansız: senkron ps (execSync) Node olay döngüsünü kilitleyip Playwright'ı askıda bırakıyordu.
+let last = 0
+const sample = () =>
+  new Promise((res) =>
+    exec("ps -eo rss,args | grep -- '--type=renderer' | grep -v grep", (err, out) => {
+      last = err ? 0 : Math.round(String(out).trim().split('\n').reduce((n, l) => n + (parseInt(l, 10) || 0), 0) / 1024)
+      res(last)
+    }),
+  )
+const rendererMB = () => last
 let peak = 0
-setInterval(() => (peak = Math.max(peak, rendererMB())), 150).unref()
+;(async function poll() {
+  for (;;) {
+    peak = Math.max(peak, await sample())
+    await new Promise((r) => setTimeout(r, 400).unref())
+  }
+})()
 
 const base = process.argv[2] || 'http://localhost:4173'
 const models = process.argv.slice(3).length
@@ -46,13 +53,14 @@ if (!worker) throw new Error('dist/assets içinde llm.worker bulunamadı; önce 
   for (const model of models) {
     const t0 = Date.now()
     console.log(`\n=== ${model}`)
-    peak = 0
-    const base = rendererMB()
+    const mem0 = await sample() // dikkat: 'base' adı sayfa adresi; gölgelenirse worker yanlış adresten yüklenir
+    peak = mem0
     const r = await p.evaluate(
       async ({ url, model, messages }) => {
         const w = new Worker(url, { type: 'module' })
+        const fail = new Promise((res) => (w.onerror = (e) => res({ type: 'error', message: 'worker başlatılamadı: ' + (e.message || url) })))
         const call = (msg) =>
-          new Promise((res) => {
+          Promise.race([fail, new Promise((res) => {
             const on = ({ data: m }) => {
               if (m.id !== msg.id) return
               if (m.type === 'token' || m.type === 'started') return
@@ -61,7 +69,7 @@ if (!worker) throw new Error('dist/assets içinde llm.worker bulunamadı; önce 
             }
             w.addEventListener('message', on)
             w.postMessage(msg)
-          })
+          })])
         let lastPct = -10
         w.addEventListener('message', ({ data: m }) => {
           if (m.type === 'progress' && m.progress - lastPct >= 25) {
@@ -102,7 +110,7 @@ if (!worker) throw new Error('dist/assets içinde llm.worker bulunamadı; önce 
       { url: base + '/assets/' + worker, model, messages },
     )
     const sec = Math.round((Date.now() - t0) / 1000)
-    console.log(`BELLEK: başlangıç ${base} MB, tepe ${peak} MB (renderer süreçleri)`)
+    console.log(`BELLEK: başlangıç ${mem0} MB, tepe ${peak} MB (renderer süreçleri)`)
     if (r.ok)
       console.log(
         `BAŞARILI (${sec} sn) tür=${r.dtype} cihaz=${r.device} üretim=${r.genSec} sn önbellekte=${r.cached} yeniden-yükleme=${r.reload} ${r.reloadSec} sn\nYanıt: ${JSON.stringify(r.text)}`,
