@@ -332,7 +332,8 @@ export default function Home() {
 }
 
 // Hiçbir şey kendiliğinden gelmez: widget'ı kullanıcı buradan ekler.
-const WIDGET_NAMES = { weather: 'Hava durumu', focus: 'Odak sayacı', notes: 'Notlar', date: 'Takvim', stats: 'İstatistik', github: 'GitHub' }
+// Not: Widgets.jsx'teki WIDGETS ile aynı tutulmalı (o modül tembel yüklendiği için burada kopyası var).
+const WIDGET_NAMES = { market: 'Piyasa', news: 'Haberler', weather: 'Hava durumu', focus: 'Odak sayacı', notes: 'Notlar', date: 'Takvim', stats: 'İstatistik', github: 'GitHub' }
 function AddWidget({ have }) {
   const [open, setOpen] = useState(false)
   const box = useRef(null)

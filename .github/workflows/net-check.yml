@@ -3,7 +3,7 @@ name: Uç nokta kontrolü
 # Piyasa / haber widget'larının dış kaynaklarını hızlıca dener (model testinden bağımsız, ~30 sn).
 on:
   push:
-    paths: ['e2e/net-check.cjs', 'src/features/market.js', '.github/workflows/net-check.yml']
+    paths: ['e2e/net-check.cjs', 'e2e/cnbc-shape.cjs', 'src/features/market.js', '.github/workflows/net-check.yml']
   workflow_dispatch:
 
 jobs:
@@ -15,4 +15,5 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - run: node e2e/cnbc-shape.cjs
       - run: node e2e/net-check.cjs

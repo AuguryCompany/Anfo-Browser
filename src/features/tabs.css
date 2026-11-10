@@ -28,7 +28,7 @@
   display: none;
   position: absolute; top: 0; left: 0; right: 0; z-index: 7;
   height: 2.6rem; align-items: center; gap: 0.25rem;
-  padding-inline: max(1rem, calc((100% - 72rem) / 2));
+  padding-inline: 0.8rem; /* tam genişlik: tablette kenarlarda boşluk kalmasın */
   overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
   scroll-padding-inline-end: 3rem; /* yapışık + düğmesi son sekmeyi örtmesin */
 }

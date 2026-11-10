@@ -12,7 +12,7 @@
 .tb2-row,
 .tb2-bm {
   flex: none; display: flex; align-items: center;
-  padding-inline: max(0.8rem, calc((100% - 72rem) / 2));
+  padding-inline: 0.8rem; /* tam genişlik */
 }
 .tb2-row { height: 2.8rem; gap: 0.2rem; }
 .tb2-bm { position: relative; height: 2.2rem; gap: 0.25rem; }
