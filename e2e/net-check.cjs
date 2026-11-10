@@ -17,6 +17,11 @@ const get = async (url) => {
     ['Stooq anlık ^SPX', 'https://stooq.com/q/l/?s=%5Espx&f=sd2t2ohlcvn&h&e=csv', (t) => t.trim().split('\n').slice(0, 2).join(' | ')],
     ['Stooq anlık XU100', 'https://stooq.com/q/l/?s=%5Exu100&f=sd2t2ohlcvn&h&e=csv', (t) => t.trim().split('\n').slice(0, 2).join(' | ')],
     ['Stooq geçmiş NVDA', 'https://stooq.com/q/d/l/?s=nvda.us&i=d', (t) => t.trim().split('\n').length + ' satır · ' + t.slice(0, 60).replace(/\n/g, ' | ')],
+    ['CNBC anlık NVDA,.SPX,.IXIC,.XU100', 'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=NVDA%7C.SPX%7C.IXIC%7C.XU100&requestMethod=itv&noform=1&partnerId=2&fund=1&exthrs=1&output=json', (t) => JSON.parse(t).FormattedQuoteResult.FormattedQuote.map((q) => `${q.symbol}=${q.last} ${q.change_pct} ${q.name}`).join(' ; ')],
+    ['CNBC grafik NVDA 1D', 'https://ts-api.cnbc.com/harmony/app/charts/1D.json?symbol=NVDA', (t) => { const j = JSON.parse(t); const b = j.barData?.priceBars || []; return b.length + ' çubuk · önceki ' + j.barData?.previousClose + ' · son ' + b.at(-1)?.close }],
+    ['CNBC grafik .SPX 1Y', 'https://ts-api.cnbc.com/harmony/app/charts/1Y.json?symbol=.SPX', (t) => { const j = JSON.parse(t); return (j.barData?.priceBars || []).length + ' çubuk' }],
+    ['CNBC arama "nvidia"', 'https://symlookup.cnbc.com/symservice/symlookup.do?prefix=nvidia&partnerid=20064&pgok=1&pgsize=6', (t) => JSON.parse(t).map((x) => x.symbolName + '/' + x.issueType + '/' + x.exchangeName).join(', ')],
+    ['CNBC arama "thy"', 'https://symlookup.cnbc.com/symservice/symlookup.do?prefix=thy&partnerid=20064&pgok=1&pgsize=6', (t) => JSON.parse(t).map((x) => x.symbolName + '/' + x.issueType).join(', ')],
     ['Google Haberler gündem', 'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr', (t) => (t.match(/<item>/g) || []).length + ' haber · ' + (t.match(/<item><title>([^<]{0,80})/) || [])[1]],
     ['Google Haberler "Teknoloji"', 'https://news.google.com/rss/search?q=Teknoloji%20when%3A2d&hl=tr&gl=TR&ceid=TR:tr', (t) => (t.match(/<item>/g) || []).length + ' haber'],
   ]) {
