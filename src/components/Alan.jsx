@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Plus, X, Search, CornerDownLeft, Settings2, Bell, Puzzle, Library } from 'lucide-react'
-import { useStore, navigate, setUi, selectTab, closeTab, newTab, activeTab, isWeb, queryOf, hostOf, labelOf, looksLikeUrl, takeSeed } from '../store'
-import { suggest } from '../search'
+import { useStore, navigate, setUi, selectTab, closeTab, newTab, activeTab, isWeb, queryOf, hostOf, labelOf, takeSeed } from '../store'
+import { useSuggestions } from '../features/suggest'
 import { play } from '../sound'
 import Aura from './Aura'
 import Favicon from './Favicon'
@@ -114,36 +114,15 @@ export default function Alan() {
   const tab = useStore(activeTab)
   const pins = useStore((s) => s.pins)
   const history = useStore((s) => s.history)
-  const live = useStore((s) => s.settings.suggest)
   const [seeded] = useState(takeSeed)
   const auto = !tab.url || !!seeded || window.matchMedia('(pointer: fine)').matches
   const initial = isWeb(tab.url) ? tab.url : queryOf(tab.url) || ''
   const [q, setQ] = useState(seeded || initial)
   const [dirty, setDirty] = useState(!!seeded)
   const [sel, setSel] = useState(0)
-  const [remote, setRemote] = useState([])
   const term = q.trim()
   const typing = dirty && !!term
-
-  // Canlı öneriler (kısa bekleme ile; her tuşta istek atılmaz).
-  useEffect(() => {
-    if (!typing || !live || term.length < 2 || /^https?:|\.\w{2,}/.test(term)) return setRemote([])
-    const ac = new AbortController()
-    const id = setTimeout(() => suggest(term, ac.signal).then((v) => !ac.signal.aborted && setRemote(v), () => {}), 170)
-    return () => (clearTimeout(id), ac.abort())
-  }, [term, typing, live])
-
-  const items = useMemo(() => {
-    if (!typing) return []
-    const low = term.toLocaleLowerCase('tr')
-    const seen = new Set()
-    const local = [...pins, ...history]
-      .filter((p) => !seen.has(p.url) && (p.url + ' ' + p.title).toLocaleLowerCase('tr').includes(low) && seen.add(p.url))
-      .slice(0, 3)
-      .map((p) => ({ kind: isWeb(p.url) ? 'site' : 'query', title: p.title, url: p.url }))
-    const ideas = remote.filter((r) => r.toLocaleLowerCase('tr') !== low).slice(0, 4)
-    return [{ kind: looksLikeUrl(term) ? 'go' : 'query', title: term, lead: true }, ...local, ...ideas.map((r) => ({ kind: 'query', title: r }))]
-  }, [typing, term, pins, history, remote])
+  const items = useSuggestions(q, typing)
 
   const go = (it) => navigate(it ? (it.kind === 'site' ? it.url : it.title) : q)
   const onKey = (e) => {

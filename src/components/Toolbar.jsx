@@ -25,6 +25,7 @@ import {
   ChevronsRight,
   ExternalLink,
   Trash2,
+  CornerDownLeft,
 } from 'lucide-react'
 import {
   useStore,
@@ -55,6 +56,7 @@ import {
   popClose,
 } from '../store'
 import Favicon from './Favicon'
+import { useSuggestions } from '../features/suggest'
 import '../features/toolbar.css'
 
 // ≥900px: tablet ve masaüstü. Araç çubuğu yalnızca bu genişlikte çizilir.
@@ -142,39 +144,83 @@ function Addr({ tab }) {
   const later = useStore((s) => inReadLater(tab.url, s))
   const [edit, setEdit] = useState(false)
   const [val, setVal] = useState('')
+  const [typed, setTyped] = useState(false) // yalnızca kullanıcı yazınca öneri göster (mevcut adres değil)
+  const [sel, setSel] = useState(0)
+  const items = useSuggestions(val, edit && typed && !!val.trim())
+  const open = items.length > 0
+  // Öneri listesi sayfanın üstüne açılır; Android'de yerel WebView arayüzün üstünde çizildiği için gizlenir.
+  useEffect(() => {
+    if (!open) return
+    popOpen()
+    return popClose
+  }, [open])
 
   const begin = () => {
     setVal(q ?? tab.url ?? '')
+    setTyped(false)
+    setSel(0)
     setEdit(true)
   }
-  const go = () => {
-    const v = val.trim()
+  const go = (it) => {
+    const v = it ? (it.kind === 'site' ? it.url : it.title) : val.trim()
     setEdit(false)
     if (v) navigate(v)
   }
 
   if (edit)
     return (
-      <div className="tb2-url">
+      <div className="tb2-url" data-open={open || undefined}>
         <input
           className="tb2-input"
           autoFocus
           value={val}
           spellCheck={false}
+          autoCapitalize="off"
+          autoCorrect="off"
+          enterKeyHint="go"
           aria-label="Adres veya arama"
-          onChange={(e) => setVal(e.target.value)}
+          aria-autocomplete="list"
+          aria-expanded={open}
+          onChange={(e) => (setVal(e.target.value), setTyped(true), setSel(0))}
           onFocus={(e) => e.target.select()}
           onBlur={() => setEdit(false)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()
-              go()
+              go(open ? items[sel] : null)
             } else if (e.key === 'Escape') {
               e.preventDefault()
               setEdit(false)
+            } else if (e.key === 'ArrowDown' && open) {
+              e.preventDefault()
+              setSel((i) => Math.min(i + 1, items.length - 1))
+            } else if (e.key === 'ArrowUp' && open) {
+              e.preventDefault()
+              setSel((i) => Math.max(i - 1, 0))
             }
           }}
         />
+        {open && (
+          // Öneriye basarken giriş alanı odağı kaybedip kapanmasın diye pointerdown engellenir.
+          <div className="tb2-sug" role="listbox" onPointerDown={(e) => e.preventDefault()}>
+            {items.map((it, i) => (
+              <button
+                key={it.kind + (it.url || it.title)}
+                className="tb2-mi"
+                role="option"
+                aria-selected={i === sel}
+                onPointerMove={() => sel !== i && setSel(i)}
+                onClick={() => go(it)}
+              >
+                {it.kind === 'site' ? <Favicon url={it.url} size={16} /> : it.kind === 'go' ? <CornerDownLeft size={16} /> : <Search size={16} />}
+                <span className="tb2-mt">
+                  <span>{it.title}</span>
+                </span>
+                <kbd>{it.kind === 'site' ? hostOf(it.url) : it.kind === 'go' ? 'git' : it.lead ? 'ara' : ''}</kbd>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     )
 

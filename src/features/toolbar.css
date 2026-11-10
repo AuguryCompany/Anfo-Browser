@@ -134,3 +134,15 @@
   .app:has(.tb2-bar) { --strip-tool: 2.8rem; }
   .app:has(.tb2-bm) { --strip-tool: 5rem; }
 }
+
+/* adres alanı önerileri (yazarken) */
+.tb2-url { position: relative; }
+.tb2-url[data-open] { border-radius: 1.1rem 1.1rem 0 0; background: var(--frost-2); }
+.tb2-sug {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 9; padding: 0.3rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+  background: color-mix(in oklab, var(--bg) 95%, transparent);
+  -webkit-backdrop-filter: blur(var(--blur, 18px)); backdrop-filter: blur(var(--blur, 18px));
+  animation: settle 0.3s var(--spring) both;
+}
+.tb2-sug .tb2-mi[aria-selected='true'] { background: var(--frost-2); }
