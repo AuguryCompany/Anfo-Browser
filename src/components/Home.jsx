@@ -112,7 +112,6 @@ const menuItem = {
 export default function Home() {
   const s = useStore((st) => st.settings)
   const pins = useStore((st) => st.pins)
-  const fresh = useStore((st) => st.history.length === 0)
   const now = useNow()
   const narrow = useNarrow()
   const [pane, setPane] = useState(0)
@@ -240,7 +239,6 @@ export default function Home() {
           Geçerli bir adres yaz
         </p>
       )}
-      {fresh && <p className="hint">adaya dokun: ara · kaydır: geri, ileri · basılı tut: eylemler</p>}
     </>
   )
   const side = (
