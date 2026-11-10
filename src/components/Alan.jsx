@@ -185,13 +185,30 @@ export default function Alan() {
         </ul>
       ) : (
         <>
-          <Wheel />
+          <div className="alan-tabs">
+            <TabsHead />
+            <Wheel />
+          </div>
           <Recent pins={pins} history={history} />
         </>
       )}
       <button className="alan-x" onClick={() => setUi(null)} aria-label="Kapat">
         <X size={18} />
       </button>
+    </div>
+  )
+}
+
+// Çarkın üstündeki başlık: saate göre selamlama değil, burada ne olduğunu söyler.
+function TabsHead() {
+  const n = useStore((s) => s.tabs.length)
+  const incog = useStore((s) => s.tabs.filter((t) => t.incognito).length)
+  return (
+    <div className="alan-tabs-head">
+      <h2>Sekmeler</h2>
+      <p>
+        {n} açık sekme{incog ? ` · ${incog} gizli` : ''} · dokun: geç · sola kaydır: kapat
+      </p>
     </div>
   )
 }

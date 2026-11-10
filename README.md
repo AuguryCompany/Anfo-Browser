@@ -153,7 +153,7 @@ Tüm veriler (sekmeler, geçmiş, sabitler, ayarlar) yalnızca cihazda, `localSt
 - Üçüncü taraf çerezler varsayılan olarak kapalı (siteler arası takip engellenir); Ayarlar › Gizlilik'ten açılabilir.
 - Gizli sekmeler Android'de ayrı bir WebView profilinde açılır: çerezleri, depolaması ve önbelleği normal sekmelerle paylaşılmaz; son gizli sekme kapanınca profil tümüyle silinir. Geçmişe ve kapatılan sekmelere yazılmaz.
 - Sitelere Global Privacy Control (`Sec-GPC: 1`, `navigator.globalPrivacyControl`) ve `DNT: 1` gönderilir.
-- Site simgeleri ve bağlantı ısıtma varsayılan olarak kapalı (açıkken site adları DuckDuckGo'nun simge hizmetine / sitelere tıklamadan önce gider).
+- Site simgeleri hiçbir üçüncü taraf hizmetten alınmaz: Android'de ziyaret edilen sitenin kendi simgesi cihazda saklanır, yoksa doğrudan sitenin `/favicon.ico` dosyası denenir; arama sonuçlarında yalnızca saklanmış simgeler gösterilir. Bağlantı ısıtma varsayılan olarak kapalı (açıkken siteler tıklamadan önce IP adresini görür).
 - Arama yedekleri yalnızca izlemeyen motorlardan (DuckDuckGo, DuckDuckGo Lite, Mojeek); Vikipedi özetleri doğrudan Vikipedi'den.
 - "Açılışta tarama verilerini sil" ve "Tarama verilerini şimdi sil": geçmiş, kapatılan sekmeler, çerezler, önbellek ve site depolaması.
 - Kalkan reklam ve izleyici alan adlarını engeller; "Engelleri aş" DNS sorgularını şifreler.

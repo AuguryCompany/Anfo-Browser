@@ -1,48 +1,53 @@
 import { useState } from 'react'
-import { Globe } from 'lucide-react'
 import { hostOf, useStore } from '../store'
+import { useFav } from '../features/favicons'
 
-// Site simgeleri çalışma anında ağdan çekilir; pakete gömülü görsel yoktur.
-// Gizlilik: varsayılan kapalı. Kapalıyken (settings.favicons !== true) hiçbir ağ isteği atılmaz; alan adının
-// ilk harfi rozet olarak gösterilir. Açıkken simgeler DuckDuckGo'nun simge hizmetinden gelir (site adı ona gider).
-export default function Favicon({ url, size = 16 }) {
+// Site simgeleri, gizlilik öncelikli:
+//  1. Cihazdaki önbellek (Android'de ziyaret edilen sitenin kendi simgesi; ağ isteği yok).
+//  2. Yoksa doğrudan sitenin kendisinden /favicon.ico (aradaki hiçbir hizmete site adı gitmez).
+//     cachedOnly: arama sonuçlarında sonuçtaki her siteye istek atılmasın diye bu adım atlanır.
+//  3. O da yoksa / kapalıysa alan adının baş harfi.
+export default function Favicon({ url, size = 16, cachedOnly = false }) {
   const host = hostOf(url)
+  const cached = useFav(host)
   const [bad, setBad] = useState(null)
-  const favicons = useStore((s) => s.settings.favicons)
-  if (favicons !== true && host)
-    return (
-      <span
-        className="fav-letter"
-        aria-hidden
-        style={{
-          display: 'grid',
-          placeItems: 'center',
-          flex: 'none',
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          background: 'var(--frost-2)',
-          backdropFilter: 'blur(var(--blur, 18px))',
-          WebkitBackdropFilter: 'blur(var(--blur, 18px))',
-          color: 'var(--text)',
-          fontSize: Math.round(size * 0.55),
-          fontWeight: 600,
-          lineHeight: 1,
-        }}
-      >
-        {host.charAt(0).toUpperCase()}
-      </span>
-    )
-  if (!host || bad === host) return <Globe size={size} className="fav-fallback" aria-hidden />
+  const on = useStore((s) => s.settings.favicons !== false)
+  if (on && cached) return <img className="fav" src={cached} width={size} height={size} alt="" />
+  if (!on || cachedOnly || !host || bad === host) return <Letter host={host} size={size} />
   return (
     <img
       className="fav"
-      src={`https://icons.duckduckgo.com/ip3/${host}.ico`}
+      src={`https://${host}/favicon.ico`}
       width={size}
       height={size}
       alt=""
       loading="lazy"
+      referrerPolicy="no-referrer"
       onError={() => setBad(host)}
     />
+  )
+}
+
+function Letter({ host, size }) {
+  return (
+    <span
+      className="fav-letter"
+      aria-hidden
+      style={{
+        display: 'grid',
+        placeItems: 'center',
+        flex: 'none',
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        background: 'var(--frost-2)',
+        color: 'var(--text)',
+        fontSize: Math.round(size * 0.55),
+        fontWeight: 600,
+        lineHeight: 1,
+      }}
+    >
+      {(host || '?').charAt(0).toUpperCase()}
+    </span>
   )
 }

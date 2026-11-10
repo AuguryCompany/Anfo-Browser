@@ -41,7 +41,7 @@ function Card({ r, i, lead }) {
     <a className={lead ? 'card answer' : 'card result'} style={{ '--i': i }} href={r.url} onClick={open(r.url)} onAuxClick={open(r.url)} onPointerEnter={() => warm(r.url)} onPointerDown={() => warm(r.url)}>
       <div className="card-body">
         <small>
-          {!lead && <Favicon url={r.url} size={14} />}
+          {!lead && <Favicon url={r.url} size={14} cachedOnly />}
           {lead ? 'Özet · Vikipedi' : hostOf(r.url)}
         </small>
         <h2>{r.title}</h2>
@@ -148,7 +148,7 @@ function Group({ g, i }) {
   return (
     <div className="card rs-group rs-in" style={{ '--i': i }}>
       <small className="rs-site">
-        <Favicon url={m.url} size={14} />
+        <Favicon url={m.url} size={14} cachedOnly />
         {g.host}
       </small>
       <a className="rs-main" href={m.url} onClick={open(m.url)} onAuxClick={open(m.url)} onPointerEnter={() => warm(m.url)} onPointerDown={() => warm(m.url)}>

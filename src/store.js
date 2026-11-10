@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom'
 import { isNative, WebTabs } from './native'
 import { play } from './sound'
 import { cloudReady } from './features/providers'
+import { putFav, clearFavs } from './features/favicons'
 
 const KEY = 'anfo:v3'
 
@@ -24,7 +25,7 @@ export const DEFAULT_SETTINGS = {
   webmcp: true,
   toolbar: true, // tablet/PC Chrome tarzı araç çubuğu
   bookmarksBar: true, // araç çubuğunun altında yer imleri çubuğu
-  favicons: false, // site simgeleri: açıkken ziyaret edilen site adları DuckDuckGo'nun simge hizmetine gider // WebMCP: tarayıcı yapay zekâ ajanlarına Anfo araçlarını sun
+  favicons: true, // site simgeleri: cihazdaki önbellekten ya da doğrudan sitenin kendisinden (üçüncü taraf yok) // WebMCP: tarayıcı yapay zekâ ajanlarına Anfo araçlarını sun
   auraStrength: 80,
   grain: 55,
   radius: 26,
@@ -174,7 +175,9 @@ function load() {
   delete settings.aiBase
   // Sürüm 4 öncesi kayıtlar için tek seferlik göç.
   // Sürüm 5: gizlilik öncelikli varsayılanlar mevcut kullanıcılara da bir kez uygulanır.
-  if ((saved.v || 0) < 5 && savedSettings) Object.assign(settings, { favicons: false, prewarm: false })
+  if ((saved.v || 0) < 5 && savedSettings) Object.assign(settings, { prewarm: false })
+  // Sürüm 6: simgeler artık üçüncü taraf hizmet kullanmadan geliyor; sürüm 5'te kapatılan simgeler geri açılır.
+  if ((saved.v || 0) < 6 && savedSettings) settings.favicons = true
   if ((saved.v || 0) < 4 && savedSettings) {
     // Eski kayıtlar: tek renkli küçük ışığa geç.
     if (!savedSettings.glow) settings.widgets = [] // eski sürüm widget'ları kendiliğinden eklemişti
@@ -213,7 +216,7 @@ function persist() {
     // Gizli sekmeler diske yazılmaz.
     const slim = tabs.filter((t) => !t.incognito).map(({ id, url, title, stack, idx }) => ({ id, url, title, stack, idx }))
     try {
-      localStorage.setItem(KEY, JSON.stringify({ v: 5, settings, tabs: slim, activeId, pins, history, blockedTotal, notifs, readLater, closedTabs }))
+      localStorage.setItem(KEY, JSON.stringify({ v: 6, settings, tabs: slim, activeId, pins, history, blockedTotal, notifs, readLater, closedTabs }))
       quotaWarned = false
     } catch {
       // Bayrak: notify → set → persist döngüsüne girmemek ve uyarıyı bir kez göstermek için.
@@ -666,6 +669,7 @@ export const clearHistory = () => set({ history: [] })
 // Uygulamanın kendi ayarları, sabitleri ve okuma listesi korunur.
 export async function clearBrowsingData() {
   set({ history: [], closedTabs: [] })
+  clearFavs()
   if (isNative) await WebTabs.clearData().catch(() => {})
 }
 if (state.settings.clearOnStart) clearBrowsingData()
@@ -754,6 +758,7 @@ export function importData(json) {
 // ---------- yerel köprü ----------
 if (isNative) {
   syncNative()
+  WebTabs.addListener('favicon', (e) => putFav(e.host, e.data))
   WebTabs.addListener('tabUpdate', (e) => {
     const prev = tabOf(e.id)
     if (!prev) return

@@ -779,7 +779,7 @@ export default function Settings() {
         <section className="card" style={{ '--i': i++ }}>
           <h2>Gizlilik</h2>
           <Toggle k="thirdPartyCookies" value={!!s.thirdPartyCookies} label="Üçüncü taraf çerezler" hint="kapalıyken siteler seni başka sitelerde izleyemez; bazı girişler ve gömülü oynatıcılar için açman gerekebilir" />
-          <Toggle k="favicons" value={!!s.favicons} label="Site simgeleri" hint="açıkken ziyaret ettiğin site adları DuckDuckGo’nun simge hizmetine gider; kapalıyken baş harf gösterilir" />
+          <Toggle k="favicons" value={s.favicons !== false} label="Site simgeleri" hint="ziyaret ettiğin sitenin kendi simgesi cihazda saklanır; başka hiçbir hizmete site adı gönderilmez" />
           <Toggle k="clearOnStart" value={!!s.clearOnStart} label="Açılışta tarama verilerini sil" hint="geçmiş, çerezler, önbellek ve site verileri; ayarlar ve sabitler kalır" />
           <p className="links">
             <Confirm label="Tarama verilerini şimdi sil" sure="Emin misin? Sil" onConfirm={() => (clearBrowsingData(), play('close'))} />

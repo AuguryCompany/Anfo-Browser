@@ -692,6 +692,24 @@ public class WebTabsPlugin extends Plugin {
                 emit(id, view);
             }
 
+            // Sitenin simgesi sayfa yuklenirken zaten indirilir; 48 px PNG olarak arayuze verilir ve cihazda saklanir.
+            // Boylece simgeler icin hicbir ucuncu taraf hizmete (site adi gondererek) istek atilmaz.
+            @Override
+            public void onReceivedIcon(WebView view, Bitmap icon) {
+                if (icon == null || incog.contains(id)) return; // gizli sekmenin izleri tutulmaz
+                String host = pageHost.get(id);
+                if (host == null || host.isEmpty()) return;
+                try {
+                    Bitmap b = Bitmap.createScaledBitmap(icon, 48, 48, true);
+                    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                    b.compress(Bitmap.CompressFormat.PNG, 100, out);
+                    JSObject o = new JSObject();
+                    o.put("host", host);
+                    o.put("data", "data:image/png;base64," + android.util.Base64.encodeToString(out.toByteArray(), android.util.Base64.NO_WRAP));
+                    notifyListeners("favicon", o);
+                } catch (Exception ignored) {}
+            }
+
             @Override
             public void onShowCustomView(View view, CustomViewCallback callback) {
                 if (customView != null) {
