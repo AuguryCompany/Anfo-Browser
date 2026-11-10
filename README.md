@@ -123,7 +123,7 @@ Ekranın altındaki (ya da ayarlanabilir olarak üstteki) Ada, tarayıcının t�
 73. Arama sonuçlarının üstünde kaynak numaralı kısa özet.
 74. Android: yay menüsündeki "AI özeti" açık sayfayı özetler.
 75. İki çalışma biçimi (Ayarlar › AI modu):
-    - **Cihazda (varsayılan, ücretsiz):** kullanıcının isteğiyle indirilen, nicemlenmiş, 800M parametrenin altındaki küçük bir model tarayıcının içinde çalışır (transformers.js + ONNX Runtime Web; WebGPU varsa GPU ve 4 bit, yoksa işlemci/WASM ve 8 bit — WASM motoru 4 bit gömme katmanını desteklemez; bir tür açılamazsa sıradaki denenir). Seçenekler: Qwen3 0.6B (önerilen), Qwen2.5 0.5B, Gemma 3 270M. Modeller Hugging Face'ten bir kez indirilir, cihazda (`transformers-cache`) saklanır, Ayarlar'dan silinebilir; sorgular hiçbir AI sunucusuna gönderilmez. Model ayrı bir Web Worker'da çalıştığı için arayüz donmaz.
+    - **Cihazda (varsayılan, ücretsiz):** kullanıcının isteğiyle indirilen, nicemlenmiş, 800M parametrenin altındaki küçük bir model tarayıcının içinde çalışır (transformers.js + ONNX Runtime Web, 4 bit; WebGPU varsa GPU, yoksa işlemci/WASM — işlemcide düz ORT yapısı kullanılır, çünkü WebGPU yapısı 4 bit gömme katmanını desteklemez). `e2e/llm-test.cjs` ve "Yerel AI testi" iş akışı modelleri gerçekten indirip çalıştırır. Seçenekler: Qwen3 0.6B (önerilen) ve Qwen2.5 0.5B. Modeller Hugging Face'ten bir kez indirilir, cihazda (`transformers-cache`) saklanır, Ayarlar'dan silinebilir; sorgular hiçbir AI sunucusuna gönderilmez. Model ayrı bir Web Worker'da çalıştığı için arayüz donmaz.
     - **Claude (API anahtarı):** anahtar kullanıcı tarafından girilir, yalnızca cihazda saklanır; model `claude-opus-5-5`.
 
 ### Klavye kısayolları

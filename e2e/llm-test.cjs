@@ -8,7 +8,7 @@ const { chromium } = require('playwright')
 const base = process.argv[2] || 'http://localhost:4173'
 const models = process.argv.slice(3).length
   ? process.argv.slice(3)
-  : ['onnx-community/gemma-3-270m-it-ONNX', 'onnx-community/Qwen2.5-0.5B-Instruct', 'onnx-community/Qwen3-0.6B-ONNX']
+  : ['onnx-community/Qwen2.5-0.5B-Instruct', 'onnx-community/Qwen3-0.6B-ONNX']
 const worker = fs.readdirSync(path.join(__dirname, '..', 'dist', 'assets')).find((f) => /^llm\.worker-.*\.js$/.test(f))
 if (!worker) throw new Error('dist/assets içinde llm.worker bulunamadı; önce npm run build')
 

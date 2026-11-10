@@ -2,11 +2,11 @@
 // Ağır iş llm.worker.js'te yapılır; bu modül yalnızca mesajlaşmayı ve arayüz durumunu yönetir.
 import { useSyncExternalStore } from 'react'
 
-// Yalnızca 800M parametrenin altındaki, nicemlenmiş (GPU'da 4 bit, işlemcide 8 bit) birkaç model. Liste kasıtlı olarak kısa tutulur.
+// Yalnızca 800M parametrenin altındaki, 4 bit nicemlenmiş modeller. Liste kasıtlı olarak kısa tutulur:
+// Gemma 3 270M denendi ama Türkçe özette anlamsız metin ürettiği için çıkarıldı (e2e/llm-test.cjs).
 export const LOCAL_MODELS = [
   { id: 'onnx-community/Qwen3-0.6B-ONNX', name: 'Qwen3 0.6B', params: '600M', note: 'En iyi Türkçe ve en tutarlı özet. Önerilen.' },
-  { id: 'onnx-community/Qwen2.5-0.5B-Instruct', name: 'Qwen2.5 0.5B', params: '500M', note: 'Biraz daha hızlı, Türkçesi iyi.' },
-  { id: 'onnx-community/gemma-3-270m-it-ONNX', name: 'Gemma 3 270M', params: '270M', note: 'En küçük ve en hızlı; zayıf cihazlar için.' },
+  { id: 'onnx-community/Qwen2.5-0.5B-Instruct', name: 'Qwen2.5 0.5B', params: '500M', note: 'Biraz daha küçük; Türkçesi iyi.' },
 ]
 export const modelName = (id) => LOCAL_MODELS.find((m) => m.id === id)?.name || id
 

@@ -75,7 +75,7 @@ export default function AiCard({ prompt, localPrompt, sources = [], label = 'AI 
       model,
       system: LOCAL_SYSTEM,
       prompt: p,
-      maxTokens: Math.min(maxTokens, 360),
+      maxTokens: Math.min(maxTokens, 200), // işlemcide yavaş: kısa yanıt
       signal: ac.signal,
       onStart: () => (setWarm(false), arm()),
       onText: (t) => (setText(t), arm()),

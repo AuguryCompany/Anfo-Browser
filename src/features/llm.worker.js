@@ -110,6 +110,7 @@ const clean = (t) =>
     .replace(/<think>[\s\S]*?(<\/think>|$)/g, '')
     .replace(/\*\*|__/g, '')
     .replace(/^#{1,6}\s*/gm, '')
+    .replace(/\((\d)\)/g, '[$1]') // bazı modeller kaynağı (1) diye yazar; kart [1] biçimini düğmeye çevirir
     .replace(/^\s+/, '')
 
 async function generate({ id, model, dtype, messages, max }) {
