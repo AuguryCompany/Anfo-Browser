@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
+import android.text.TextUtils;
 import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -17,6 +18,7 @@ import android.os.Looper;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -366,6 +368,28 @@ public class WebTabsPlugin extends Plugin {
         return null;
     }
 
+    /** Yukleme hatasi sayfasi: koyu tema, anlasilir neden ve "Yeniden dene". */
+    private static String errorPage(String url, int code, String desc) {
+        String why;
+        switch (code) {
+            case WebViewClient.ERROR_HOST_LOOKUP: why = "Sunucu bulunamadı. Adresi kontrol et ya da DNS ayarını değiştirmeyi dene."; break;
+            case WebViewClient.ERROR_TIMEOUT: why = "Site zamanında yanıt vermedi."; break;
+            case WebViewClient.ERROR_FAILED_SSL_HANDSHAKE:
+            case WebViewClient.ERROR_UNSAFE_RESOURCE: why = "Güvenli bağlantı kurulamadı."; break;
+            case WebViewClient.ERROR_CONNECT:
+            case WebViewClient.ERROR_IO:
+            default: why = "Bağlantı kurulamadı. Site erişilemiyor olabilir ya da internet sağlayıcın bağlantıyı kesiyor olabilir; özel DNS ya da VPN dene.";
+        }
+        String u = TextUtils.htmlEncode(url);
+        return "<!doctype html><html lang=tr><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+            + "<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#000;color:#e8e8ea;font:16px/1.5 system-ui,sans-serif}"
+            + "main{max-width:30rem;padding:2rem}h1{font-size:1.4rem;font-weight:500;margin:0 0 .6rem}p{color:#9a9aa2;margin:.4rem 0}"
+            + "code{display:block;word-break:break-all;color:#9a9aa2;font-size:.8rem;margin-top:1rem}"
+            + "a.b{display:inline-block;margin-top:1.2rem;padding:.7rem 1.4rem;border-radius:999px;background:#2a2a30;color:#fff;text-decoration:none}</style></head>"
+            + "<body><main><h1>Sayfa açılamadı</h1><p>" + TextUtils.htmlEncode(why) + "</p><a class=b href=\"" + u + "\">Yeniden dene</a>"
+            + "<code>" + u + "<br>" + TextUtils.htmlEncode(desc) + "</code></main></body></html>";
+    }
+
     private void injectCss(String id, WebView w) {
         String page = pageHost.get(id);
         StringBuilder css = new StringBuilder();
@@ -448,7 +472,10 @@ public class WebTabsPlugin extends Plugin {
         s.setCacheMode(cacheMode);
         if (Build.VERSION.SDK_INT >= 33) s.setAlgorithmicDarkeningAllowed(dark);
         else if (Build.VERSION.SDK_INT >= 29) s.setForceDark(dark ? WebSettings.FORCE_DARK_ON : WebSettings.FORCE_DARK_OFF);
-        if (defaultUa == null) defaultUa = s.getUserAgentString();
+        // Varsayilan WebView kimligi "; wv" ve "Version/4.0" icerir; Cloudflare gibi bot korumalari ve bircok site
+        // bunu uygulama ici tarayici sayip baglantiyi keser (ERR_CONNECTION_ABORTED/RESET) ya da giris vermez.
+        // Chrome'un kimligi gibi sadelestirilir.
+        if (defaultUa == null) defaultUa = s.getUserAgentString().replace("; wv", "").replaceAll(" Version/[\\d.]+", "");
         s.setUserAgentString(desktop ? defaultUa.replaceAll("\\(Linux; Android[^)]*\\)", "(X11; Linux x86_64)").replace(" Mobile", "") : defaultUa);
     }
 
@@ -485,6 +512,15 @@ public class WebTabsPlugin extends Plugin {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return filter(id, request);
+            }
+
+            // Ana sayfa yuklenemezse Android'in varsayilan hata sayfasi yerine kendi sayfamiz gosterilir.
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (!request.isForMainFrame()) return;
+                String desc = String.valueOf(error.getDescription());
+                if (desc.contains("ERR_ABORTED")) return; // kullanici/indirme iptali: hata degil
+                view.loadDataWithBaseURL(request.getUrl().toString(), errorPage(request.getUrl().toString(), error.getErrorCode(), desc), "text/html", "utf-8", request.getUrl().toString());
             }
 
             @Override
