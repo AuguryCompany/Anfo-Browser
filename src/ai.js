@@ -143,12 +143,14 @@ export const pagePrompt = (doc) => {
 export const LOCAL_SYSTEM = `Sen yardımsever bir asistansın. Her zaman Türkçe yanıt verirsin.
 Yalnızca sana verilen bilgileri kullanırsın; bilgilerde olmayan bir şey uydurmazsın.`
 
-const LOCAL_SNIPPET = 300
-const LOCAL_PAGE_CHARS = 4000
+// Kısa tutulur: yanıt başlarken model yönergenin her parçası için kelime dağarcığı boyutunda (~152 bin) bir
+// olasılık tablosu hesaplayabilir; uzun yönerge telefonda belleği aşar.
+const LOCAL_SNIPPET = 220
+const LOCAL_PAGE_CHARS = 1800
 
 export const overviewPromptLocal = (q, results) =>
   `Bilgiler:\n${results
-    .slice(0, 5)
+    .slice(0, 3)
     .map((r, i) => `[${i + 1}] ${r.title}: ${(r.snippet || '').slice(0, LOCAL_SNIPPET)}`)
     .join('\n')}\n\nSoru: ${q}\n\nYukarıdaki bilgilere dayanarak soruyu Türkçe olarak 2-3 cümleyle yanıtla. Her cümlenin sonuna dayandığın bilginin numarasını [1] gibi yaz.`
 

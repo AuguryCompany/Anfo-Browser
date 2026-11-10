@@ -4,6 +4,19 @@
 const fs = require('fs')
 const path = require('path')
 const { chromium } = require('playwright')
+const { execSync } = require('child_process')
+
+// Tarayıcının renderer süreçlerinin toplam yerleşik belleği (MB). Model worker'ı renderer içinde çalışır.
+function rendererMB() {
+  try {
+    const out = execSync("ps -eo rss,args | grep -- '--type=renderer' | grep -v grep", { encoding: 'utf8' })
+    return Math.round(out.trim().split('\n').reduce((n, l) => n + (parseInt(l, 10) || 0), 0) / 1024)
+  } catch {
+    return 0
+  }
+}
+let peak = 0
+setInterval(() => (peak = Math.max(peak, rendererMB())), 150).unref()
 
 const base = process.argv[2] || 'http://localhost:4173'
 const models = process.argv.slice(3).length
@@ -33,6 +46,8 @@ if (!worker) throw new Error('dist/assets içinde llm.worker bulunamadı; önce 
   for (const model of models) {
     const t0 = Date.now()
     console.log(`\n=== ${model}`)
+    peak = 0
+    const base = rendererMB()
     const r = await p.evaluate(
       async ({ url, model, messages }) => {
         const w = new Worker(url, { type: 'module' })
@@ -87,6 +102,7 @@ if (!worker) throw new Error('dist/assets içinde llm.worker bulunamadı; önce 
       { url: base + '/assets/' + worker, model, messages },
     )
     const sec = Math.round((Date.now() - t0) / 1000)
+    console.log(`BELLEK: başlangıç ${base} MB, tepe ${peak} MB (renderer süreçleri)`)
     if (r.ok)
       console.log(
         `BAŞARILI (${sec} sn) tür=${r.dtype} cihaz=${r.device} üretim=${r.genSec} sn önbellekte=${r.cached} yeniden-yükleme=${r.reload} ${r.reloadSec} sn\nYanıt: ${JSON.stringify(r.text)}`,
