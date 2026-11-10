@@ -122,7 +122,9 @@ Ekranın altındaki (ya da ayarlanabilir olarak üstteki) Ada, tarayıcının t�
 
 73. Arama sonuçlarının üstünde kaynak numaralı kısa özet.
 74. Android: yay menüsündeki "AI özeti" açık sayfayı özetler.
-75. Anthropic API anahtarı kullanıcı tarafından girilir, yalnızca cihazda saklanır; model `claude-opus-5-5`.
+75. İki çalışma biçimi (Ayarlar › AI modu):
+    - **Cihazda (varsayılan, ücretsiz):** kullanıcının isteğiyle indirilen, 4 bit nicemlenmiş, 800M parametrenin altındaki küçük bir model tarayıcının içinde çalışır (transformers.js + ONNX Runtime Web; WebGPU varsa GPU, yoksa WASM). Seçenekler: Qwen3 0.6B (önerilen), Qwen2.5 0.5B, Gemma 3 270M. Modeller Hugging Face'ten bir kez indirilir, cihazda (`transformers-cache`) saklanır, Ayarlar'dan silinebilir; sorgular hiçbir AI sunucusuna gönderilmez. Model ayrı bir Web Worker'da çalıştığı için arayüz donmaz.
+    - **Claude (API anahtarı):** anahtar kullanıcı tarafından girilir, yalnızca cihazda saklanır; model `claude-opus-5-5`.
 
 ### Klavye kısayolları
 

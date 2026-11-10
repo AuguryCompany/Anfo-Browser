@@ -1,14 +1,16 @@
 import { useMemo } from 'react'
-import { useStore, hostOf } from '../store'
-import { pagePrompt } from '../ai'
+import { useStore, hostOf, aiReady } from '../store'
+import { pagePrompt, pagePromptLocal } from '../ai'
 import Aura from './Aura'
 import AiCard from './AiCard'
 
 // Okuma modu: sayfanın yalnızca metni, kendi tipografimizle. İstenirse başında AI özeti.
 export default function Reader({ doc }) {
   const aiOn = useStore((s) => s.settings.ai)
-  const keyed = useStore((s) => !!s.settings.aiKey)
+  const keyed = useStore((s) => aiReady(s.settings))
+  const local = useStore((s) => s.settings.aiEngine === 'local')
   const prompt = useMemo(() => pagePrompt(doc), [doc])
+  const localPrompt = useMemo(() => pagePromptLocal(doc), [doc])
   const words = useMemo(() => doc.blocks.reduce((n, b) => n + (b.t === 'img' ? 0 : b.v.split(/\s+/).length), 0), [doc])
   const empty = words < 40
 
@@ -27,9 +29,9 @@ export default function Reader({ doc }) {
           (!aiOn ? (
             <p className="foot left">AI modu kapalı — Ayarlar’dan aç</p>
           ) : keyed ? (
-            <AiCard prompt={prompt} label="Sayfa özeti" />
+            <AiCard prompt={prompt} localPrompt={localPrompt} label="Sayfa özeti" />
           ) : (
-            <p className="foot left">AI özeti için Ayarlar › AI bölümüne bir API anahtarı ekle.</p>
+            <p className="foot left">{local ? 'AI özeti için Ayarlar › AI modu bölümünden bir model indir.' : 'AI özeti için Ayarlar › AI bölümüne bir API anahtarı ekle.'}</p>
           ))}
 
         {empty ? (

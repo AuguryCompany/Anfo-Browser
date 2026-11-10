@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useStore, navigate } from '../store'
-import { ask } from '../ai'
+import { ask, LOCAL_SYSTEM } from '../ai'
+import { askLocal, modelName } from '../features/local-ai'
 
 const TIMEOUT_MS = 45000
+const LOCAL_IDLE_MS = 120000 // yerel model: ilk yükleme uzun sürebilir; her yeni parçada süre yenilenir
 const MIN_KEY_LEN = 20
 const CACHE_MAX = 20
 
@@ -23,14 +25,77 @@ function cachePut(k, v) {
 }
 
 // Akan AI yanıtı. [1] gibi kaynak işaretleri, verilen kaynak listesine bağlanan küçük düğmelere dönüşür.
-export default function AiCard({ prompt, sources = [], label = 'AI özeti', maxTokens = 1500 }) {
+// Yerel modda (cihazda çalışan model) localPrompt kullanılır; verilmezse prompt kısaltılarak gönderilir.
+export default function AiCard({ prompt, localPrompt, sources = [], label = 'AI özeti', maxTokens = 1500 }) {
   const key = useStore((s) => s.settings.aiKey)
+  const local = useStore((s) => s.settings.aiEngine === 'local')
+  const model = useStore((s) => s.settings.localModel)
   const [text, setText] = useState('')
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
+  const [warm, setWarm] = useState(false) // yerel model belleğe yüklenirken
   const [attempt, setAttempt] = useState(0) // "Yeniden dene" sayacı
 
   useEffect(() => {
+    if (!local) return
+    setError('')
+    setDone(false)
+    setWarm(true)
+    const p = localPrompt || prompt.slice(0, 4000)
+    const ck = model + '\n' + p
+    const hit = cacheGet(ck)
+    if (hit !== undefined) {
+      setText(hit)
+      setDone(true)
+      setWarm(false)
+      return
+    }
+    setText('')
+    if (!model) {
+      setError('Ayarlar › AI modu bölümünden bir model indir.')
+      return
+    }
+    const ac = new AbortController()
+    let timer
+    let timedOut = false
+    const arm = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        timedOut = true
+        ac.abort()
+      }, LOCAL_IDLE_MS)
+    }
+    arm()
+    askLocal({
+      model,
+      system: LOCAL_SYSTEM,
+      prompt: p,
+      maxTokens: Math.min(maxTokens, 360),
+      signal: ac.signal,
+      onStart: () => (setWarm(false), arm()),
+      onText: (t) => (setText(t), arm()),
+    }).then(
+      (full) => {
+        clearTimeout(timer)
+        if (full) cachePut(ck, full)
+        else setError('Model bir yanıt üretmedi.')
+        setDone(true)
+      },
+      (e) => {
+        clearTimeout(timer)
+        setWarm(false)
+        if (timedOut) setError('Model zamanında yanıt vermedi.')
+        else if (e.name !== 'AbortError') setError(e.message || 'Model çalıştırılamadı.')
+      },
+    )
+    return () => {
+      clearTimeout(timer)
+      ac.abort()
+    }
+  }, [local, model, prompt, localPrompt, maxTokens, attempt])
+
+  useEffect(() => {
+    if (local) return
     setError('')
     setDone(false)
     const hit = cacheGet(prompt)
@@ -68,13 +133,14 @@ export default function AiCard({ prompt, sources = [], label = 'AI özeti', maxT
       clearTimeout(timer)
       ac.abort()
     }
-  }, [key, prompt, maxTokens, attempt])
+  }, [local, key, prompt, maxTokens, attempt])
 
   const parts = text.split(/(\[\d+\])/g)
   return (
     <article className="card ai" data-live={!done && !error ? '' : undefined} aria-live="polite">
       <small>
         <Sparkles size={13} /> {label}
+        {local && model && <span className="ai-model"> · {modelName(model)} · cihazda</span>}
       </small>
       {error ? (
         <>
@@ -98,7 +164,7 @@ export default function AiCard({ prompt, sources = [], label = 'AI özeti', maxT
           })}
         </p>
       ) : (
-        <p className="ai-text muted">düşünüyor…</p>
+        <p className="ai-text muted">{local && warm ? 'model yükleniyor…' : 'düşünüyor…'}</p>
       )}
     </article>
   )

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, ExternalLink, Map as MapIcon, Sparkles, X } from 'lucide-react'
-import { useStore, navigate, newTab, setUi, hostOf, engineUrl, ENGINES, warm } from '../store'
+import { useStore, navigate, newTab, setUi, hostOf, engineUrl, ENGINES, warm, aiReady } from '../store'
 import { search } from '../search'
-import { overviewPrompt } from '../ai'
+import { overviewPrompt, overviewPromptLocal } from '../ai'
 import { facts, images, related, groupResults, quickAnswer } from '../features/knowledge'
 import AiCard from './AiCard'
 import Aura from './Aura'
@@ -273,7 +273,8 @@ export default function Results({ q, rev }) {
   const [viewer, setViewer] = useState(null)
   const [retry, setRetry] = useState(0)
   const aiOn = useStore((st) => st.settings.ai)
-  const hasKey = useStore((st) => !!st.settings.aiKey)
+  const local = useStore((st) => st.settings.aiEngine === 'local')
+  const aiOk = useStore((st) => aiReady(st.settings))
   const ok = s.status === 'ok'
   const closeViewer = useCallback(() => setViewer(null), [])
 
@@ -329,7 +330,8 @@ export default function Results({ q, rev }) {
   // AI özeti, bulunan sonuçları kaynak olarak kullanır.
   const sources = useMemo(() => (ok ? [...(s.answer ? [s.answer] : []), ...s.results].slice(0, 8) : []), [s, ok])
   const prompt = useMemo(() => (sources.length ? overviewPrompt(q, sources) : ''), [q, sources])
-  const useAi = !!(aiOn && hasKey && prompt)
+  const localPrompt = useMemo(() => (sources.length ? overviewPromptLocal(q, sources) : ''), [q, sources])
+  const useAi = !!(aiOk && prompt)
 
   useEffect(() => {
     setQa(null)
@@ -416,7 +418,7 @@ export default function Results({ q, rev }) {
           <div className="rs-all">
            <div className="rs-col main">
             <div className="rs-o1">
-              {useAi && <AiCard prompt={prompt} sources={sources} maxTokens={1200} />}
+              {useAi && <AiCard prompt={prompt} localPrompt={localPrompt} sources={sources} maxTokens={1200} />}
               {!useAi && qa && <QuickAnswer qa={qa} sources={sources} />}
             </div>
 
@@ -486,11 +488,11 @@ export default function Results({ q, rev }) {
         {ok && cur === 'info' && hasInfo && <InfoPanel f={extra.facts} big />}
 
         {s.status !== 'loading' && elsewhere}
-        {ok && aiOn && !hasKey && !empty && (
+        {ok && aiOn && !aiOk && !empty && (
           <p className="foot">
             AI özeti için{' '}
             <button className="link" onClick={() => setUi('settings')}>
-              bir API anahtarı ekle
+              {local ? 'cihaza bir model indir' : 'bir API anahtarı ekle'}
             </button>
           </p>
         )}

@@ -59,3 +59,26 @@ export const pagePrompt = (doc) => {
   const text = body.length > PAGE_MAX_CHARS ? body.slice(0, PAGE_MAX_CHARS) + '\n\n[Metnin devamı kırpıldı.]' : body
   return `Aşağıdaki sayfayı özetle: önce tek cümleyle ne olduğu, sonra en önemli noktalar.\n\nBaşlık: ${doc.title}\nAdres: ${doc.url}\n\n${text}`
 }
+
+// ---- cihazda çalışan küçük modeller için (bkz. features/local-ai.js) ----
+// Küçük modellerin bağlamı ve hızı sınırlı: daha az kaynak, kısa metin, kısa yönerge.
+export const LOCAL_SYSTEM = `Bir tarayıcının arama özeti yardımcısısın. Türkçe, kısa ve doğrudan yaz.
+Yalnızca verilen kaynaklara dayan, uydurma. Düz metin yaz, en fazla iki kısa paragraf.`
+
+const LOCAL_SNIPPET = 300
+const LOCAL_PAGE_CHARS = 4000
+
+export const overviewPromptLocal = (q, results) =>
+  `Soru: ${q}\n\nKaynaklar:\n${results
+    .slice(0, 5)
+    .map((r, i) => `[${i + 1}] ${r.title}\n${(r.snippet || '').slice(0, LOCAL_SNIPPET)}`)
+    .join('\n\n')}\n\nSoruyu bu kaynaklara göre kısaca yanıtla. Bilgiyi aldığın kaynağı cümle sonunda [1] biçiminde belirt.`
+
+export const pagePromptLocal = (doc) => {
+  const body = doc.blocks
+    .filter((b) => b.t !== 'img')
+    .map((b) => b.v)
+    .join('\n')
+    .slice(0, LOCAL_PAGE_CHARS)
+  return `Aşağıdaki sayfayı Türkçe olarak birkaç cümleyle özetle.\n\nBaşlık: ${doc.title}\n\n${body}`
+}

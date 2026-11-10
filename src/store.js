@@ -48,7 +48,9 @@ export const DEFAULT_SETTINGS = {
   liveTabs: 4, // aynı anda bellekte tutulan sekme sayısı
   // AI modu
   ai: true,
+  aiEngine: 'local', // local: cihazda çalışan küçük model | cloud: Claude (API anahtarı)
   aiKey: '',
+  localModel: '', // seçili ve indirilmiş yerel model (boşsa yerel AI hazır değil)
   // ana sayfa ve görünüm
   widgets: [], // gösterilen widget'lar, sırasıyla — kullanıcı eklemeden hiçbiri görünmez
   pinShape: 'circle', // circle | squircle | square
@@ -152,6 +154,8 @@ function load() {
   if (!isObj(saved)) saved = {}
   const savedSettings = isObj(saved.settings) ? saved.settings : null
   const settings = { ...DEFAULT_SETTINGS, ...savedSettings }
+  // Yerel AI öncesi kayıtlar: API anahtarı girilmişse bulut AI ile devam et.
+  if (savedSettings && !savedSettings.aiEngine && savedSettings.aiKey) settings.aiEngine = 'cloud'
   // Sürüm 4 öncesi kayıtlar için tek seferlik göç.
   if ((saved.v || 0) < 4 && savedSettings) {
     // Eski kayıtlar: tek renkli küçük ışığa geç.
@@ -361,6 +365,9 @@ export function setUi(ui, withSeed = '') {
   play(ui ? 'sheet' : 'tap')
   soft(() => set({ ui }))
 }
+
+// AI özeti kullanılabilir mi: yerel modda indirilmiş bir model, bulut modda API anahtarı gerekir.
+export const aiReady = (st) => !!st.ai && (st.aiEngine === 'local' ? !!st.localModel : !!st.aiKey)
 
 // Açılır menüler yerel WebView'ın altında kalmasın diye açıkken sayılır (bkz. WebPane NativeSlot).
 export const popOpen = () => set((s) => ({ pop: s.pop + 1 }))
@@ -659,7 +666,8 @@ export async function clearCaches() {
   if (isNative) return (await WebTabs.clearCache()).freedMB || 0
   if (!('caches' in window)) return 0
   const keys = await caches.keys()
-  await Promise.all(keys.filter((k) => !k.startsWith('anfo-shell')).map((k) => caches.delete(k)))
+  // Uygulama kabuğu ve indirilen AI modelleri ('transformers-cache') silinmez.
+  await Promise.all(keys.filter((k) => !k.startsWith('anfo-shell') && k !== 'transformers-cache').map((k) => caches.delete(k)))
   return 0
 }
 export async function memoryInfo() {

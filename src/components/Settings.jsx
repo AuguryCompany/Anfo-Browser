@@ -7,6 +7,7 @@ import Aura from './Aura'
 import { THEMES } from '../features/themes'
 import { WIDGETS } from '../features/Widgets'
 import { useGhInvalid } from '../features/gh'
+import LocalModels from '../features/LocalModels'
 import '../features/settings-extra.css'
 
 // İmza palet: kiraz. Diğerleri aynı doygunlukta yan tonlar.
@@ -518,7 +519,9 @@ export default function Settings() {
         <section className="card" style={{ '--i': i++ }}>
           <h2>AI modu</h2>
           <Toggle k="ai" value={s.ai} label="Aramada AI özeti" />
-          {s.ai && (
+          {s.ai && <Seg k="aiEngine" value={s.aiEngine} options={{ local: 'Cihazda (ücretsiz)', cloud: 'Claude (API anahtarı)' }} />}
+          {s.ai && s.aiEngine === 'local' && <LocalModels />}
+          {s.ai && s.aiEngine !== 'local' && (
             <label className="field">
               <span>Anthropic API anahtarı</span>
               <SaveField
@@ -532,8 +535,10 @@ export default function Settings() {
             </label>
           )}
           <p>
-            Arama sonuçlarının üstünde kaynak numaralı kısa bir yanıt üretir{isNative ? '; yay menüsündeki “AI özeti” açık sayfayı özetler' : ''}. Anahtar yalnızca bu cihazda
-            saklanır ve yalnızca Anthropic’e gönderilir; kullanım kendi hesabından ücretlendirilir.
+            Arama sonuçlarının üstünde kaynak numaralı kısa bir yanıt üretir{isNative ? '; yay menüsündeki “AI özeti” açık sayfayı özetler' : ''}.
+            {s.aiEngine === 'local'
+              ? ' Cihazda modu küçük bir modeli bu tarayıcının içinde çalıştırır; yanıtlar Claude kadar ayrıntılı olmayabilir.'
+              : ' Anahtar yalnızca bu cihazda saklanır ve yalnızca Anthropic’e gönderilir; kullanım kendi hesabından ücretlendirilir.'}
           </p>
         </section>
 
