@@ -5,12 +5,16 @@ import { pipeline, env, TextStreamer, InterruptableStoppingCriteria, ModelRegist
 
 env.allowLocalModels = false
 
-const DTYPE = 'q4' // 4 bit nicemlenmiş ağırlıklar: hem WebGPU hem WASM'da çalışır
+// Nicemleme türü cihaza göre seçilir. WASM (işlemci) motoru 4 bit modellerin gömme katmanındaki
+// GatherBlockQuantized işlemini desteklemez; orada 8 bit kullanılır. Bir tür oturum açamazsa sıradaki denenir.
+const CANDIDATES = { webgpu: ['q4f16', 'q4', 'q8'], wasm: ['q8', 'int8', 'uint8'] }
+const ALL_DTYPES = ['q4f16', 'q4', 'q8', 'int8', 'uint8']
 const stopper = new InterruptableStoppingCriteria()
 let gen = null // yüklü pipeline
 let genModel = null
 let loading = null // { model, promise }
 let device = null
+let genDtype = null
 
 const post = (m) => self.postMessage(m)
 
@@ -24,20 +28,36 @@ async function pickDevice() {
   return (device = 'wasm')
 }
 
-async function create(model, onProgress) {
-  const opts = { dtype: DTYPE, device: await pickDevice(), progress_callback: onProgress }
-  try {
-    return await pipeline('text-generation', model, opts)
-  } catch (e) {
-    // Bazı cihazlarda WebGPU adaptörü var ama oturum açılamıyor: CPU'ya düş.
-    if (opts.device !== 'webgpu') throw e
-    device = 'wasm'
-    return pipeline('text-generation', model, { ...opts, device: 'wasm' })
+// Kullanılmayan türlerin (ör. açılamayan 4 bit) dosyalarını önbellekten siler.
+async function clearOthers(model, keep) {
+  for (const d of ALL_DTYPES) if (d !== keep) await ModelRegistry.clear_cache(model, { dtype: d }).catch(() => {})
+}
+
+// Kayıtlı türü (önceden çalışmış olan) öne alarak sırayla dener; çalışan ilk oturumu döndürür.
+async function create(model, preferred, onProgress) {
+  const devices = (await pickDevice()) === 'webgpu' ? ['webgpu', 'wasm'] : ['wasm']
+  let last
+  for (const dev of devices) {
+    const list = CANDIDATES[dev]
+    const order = preferred && list.includes(preferred) ? [preferred, ...list.filter((d) => d !== preferred)] : list
+    for (const dtype of order) {
+      try {
+        const p = await pipeline('text-generation', model, { dtype, device: dev, progress_callback: onProgress })
+        device = dev
+        return { p, dtype }
+      } catch (e) {
+        last = e
+        // Ağ hatasında başka tür denemenin anlamı yok.
+        if (/failed to fetch|network|load resource/i.test(String(e?.message))) throw e
+        await ModelRegistry.clear_cache(model, { dtype }).catch(() => {})
+      }
+    }
   }
+  throw last
 }
 
 // Modeli yükler (gerekirse indirir). Aynı model için eşzamanlı çağrılar tek yüklemeyi paylaşır.
-function load(model) {
+function load(model, preferred) {
   if (gen && genModel === model) return Promise.resolve(gen)
   if (loading?.model === model) return loading.promise
   const promise = (async () => {
@@ -46,7 +66,7 @@ function load(model) {
       gen = genModel = null
     }
     let last = 0
-    const p = await create(model, (info) => {
+    const { p, dtype } = await create(model, preferred, (info) => {
       if (info.status !== 'progress_total') return
       const now = Date.now()
       if (now - last < 200 && info.progress < 100) return // mesaj seli olmasın
@@ -55,6 +75,8 @@ function load(model) {
     })
     gen = p
     genModel = model
+    genDtype = dtype
+    clearOthers(model, dtype)
     return p
   })()
   loading = { model, promise }
@@ -69,8 +91,8 @@ function load(model) {
 // Qwen3 düşünme bölümünü (<think>…</think>) çıktıdan ayıklar.
 const clean = (t) => t.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').replace(/^\s+/, '')
 
-async function generate({ id, model, messages, max }) {
-  const p = await load(model)
+async function generate({ id, model, dtype, messages, max }) {
+  const p = await load(model, dtype)
   post({ type: 'started', id })
   stopper.reset()
   let raw = ''
@@ -94,7 +116,7 @@ async function generate({ id, model, messages, max }) {
 }
 
 async function sizeOf(model) {
-  const files = await ModelRegistry.get_files(model, { dtype: DTYPE })
+  const files = await ModelRegistry.get_files(model, { dtype: CANDIDATES[await pickDevice()][0] })
   const meta = await Promise.all(files.map((f) => ModelRegistry.get_file_metadata(model, f).catch(() => null)))
   return meta.reduce((n, m) => n + (m?.size || 0), 0)
 }
@@ -103,8 +125,8 @@ self.onmessage = async ({ data: m }) => {
   try {
     switch (m.type) {
       case 'load':
-        await load(m.model)
-        post({ type: 'ready', id: m.id, model: m.model, device })
+        await load(m.model, m.dtype)
+        post({ type: 'ready', id: m.id, model: m.model, device, dtype: genDtype })
         break
       case 'gen':
         await generate(m)
@@ -114,7 +136,11 @@ self.onmessage = async ({ data: m }) => {
         break
       case 'cached': {
         const out = {}
-        for (const model of m.models) out[model] = await ModelRegistry.is_cached(model, { dtype: DTYPE }).catch(() => false)
+        // Kayıtlı (çalıştığı bilinen) türle bakılır; kayıt yoksa model indirilmiş sayılmaz.
+        for (const model of m.models) {
+          const d = m.dtypes?.[model]
+          out[model] = d ? await ModelRegistry.is_cached(model, { dtype: d }).catch(() => false) : false
+        }
         post({ type: 'cached', id: m.id, cached: out })
         break
       }
@@ -126,7 +152,7 @@ self.onmessage = async ({ data: m }) => {
           await gen?.dispose?.()
           gen = genModel = null
         }
-        await ModelRegistry.clear_cache(m.model, { dtype: DTYPE })
+        await clearOthers(m.model, null)
         post({ type: 'deleted', id: m.id, model: m.model })
         break
     }

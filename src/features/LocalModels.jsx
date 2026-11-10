@@ -70,7 +70,7 @@ export default function LocalModels() {
               <span className="lm-dot">{on && <Check size={12} />}</span>
               <span className="lm-txt">
                 <b>
-                  {m.name} <small>{m.params} · 4 bit{size ? ' · ' + fmtMB(size) : ''}</small>
+                  {m.name} <small>{m.params} · nicemlenmiş{size ? ' · ' + fmtMB(size) : ''}</small>
                 </b>
                 <small>{m.note}</small>
                 {busy && (

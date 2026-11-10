@@ -2,7 +2,7 @@
 // Ağır iş llm.worker.js'te yapılır; bu modül yalnızca mesajlaşmayı ve arayüz durumunu yönetir.
 import { useSyncExternalStore } from 'react'
 
-// Yalnızca 800M parametrenin altındaki, 4 bit nicemlenmiş birkaç model. Liste kasıtlı olarak kısa tutulur.
+// Yalnızca 800M parametrenin altındaki, nicemlenmiş (GPU'da 4 bit, işlemcide 8 bit) birkaç model. Liste kasıtlı olarak kısa tutulur.
 export const LOCAL_MODELS = [
   { id: 'onnx-community/Qwen3-0.6B-ONNX', name: 'Qwen3 0.6B', params: '600M', note: 'En iyi Türkçe ve en tutarlı özet. Önerilen.' },
   { id: 'onnx-community/Qwen2.5-0.5B-Instruct', name: 'Qwen2.5 0.5B', params: '500M', note: 'Biraz daha hızlı, Türkçesi iyi.' },
@@ -27,7 +27,7 @@ const subscribe = (f) => (subs.add(f), () => subs.delete(f))
 export const useLocalModels = () => useSyncExternalStore(subscribe, () => state)
 export const localDevice = () => device
 
-const SIZE_KEY = 'anfo:llm-size'
+const SIZE_KEY = 'anfo:llm-size2' // 2: boyut, cihaza uygun türe göre ölçülür
 try {
   const sizes = JSON.parse(localStorage.getItem(SIZE_KEY) || '{}')
   for (const [k, v] of Object.entries(sizes)) state[k] = { size: v }
@@ -39,6 +39,26 @@ function saveSize(model, bytes) {
     const s = JSON.parse(localStorage.getItem(SIZE_KEY) || '{}')
     s[model] = bytes
     localStorage.setItem(SIZE_KEY, JSON.stringify(s))
+  } catch {
+    /* yok say */
+  }
+}
+
+// Her model için bu cihazda çalıştığı doğrulanan nicemleme türü (q4f16, q8…).
+const DTYPE_KEY = 'anfo:llm-dtype'
+const readDtypes = () => {
+  try {
+    return JSON.parse(localStorage.getItem(DTYPE_KEY) || '{}') || {}
+  } catch {
+    return {}
+  }
+}
+function saveDtype(model, dtype) {
+  try {
+    const d = readDtypes()
+    if (dtype) d[model] = dtype
+    else delete d[model]
+    localStorage.setItem(DTYPE_KEY, JSON.stringify(d))
   } catch {
     /* yok say */
   }
@@ -59,9 +79,11 @@ function getWorker() {
         return
       case 'ready':
         device = m.device
+        saveDtype(m.model, m.dtype)
         patch(m.model, { status: 'ready', progress: 100, error: '' })
         break
       case 'deleted':
+        saveDtype(m.model, null)
         patch(m.model, { status: 'idle', progress: 0, loaded: 0 })
         break
       case 'size':
@@ -95,7 +117,7 @@ function call(msg, extra = {}) {
 
 // Hangi modellerin önbellekte olduğunu denetler ve durumu günceller. İndirilmiş model kimliklerini döndürür.
 export async function refreshLocal() {
-  const { cached } = await call({ type: 'cached', models: LOCAL_MODELS.map((m) => m.id) })
+  const { cached } = await call({ type: 'cached', models: LOCAL_MODELS.map((m) => m.id), dtypes: readDtypes() })
   for (const [model, ok] of Object.entries(cached)) {
     const cur = state[model]?.status
     if (cur === 'downloading') continue
@@ -115,10 +137,17 @@ export async function measureLocal(model) {
 export async function downloadLocal(model) {
   patch(model, { status: 'downloading', progress: 0, loaded: 0, error: '' })
   try {
-    await call({ type: 'load', model })
+    await call({ type: 'load', model, dtype: readDtypes()[model] })
   } catch (e) {
     const net = /fetch|network|load resource/i.test(e.message)
-    const err = new Error(net ? 'İndirilemedi: internet bağlantısını kontrol edip yeniden dene.' : 'İndirilemedi: ' + e.message)
+    const unsupported = /session|implementation|backend/i.test(e.message)
+    const err = new Error(
+      net
+        ? 'İndirilemedi: internet bağlantısını kontrol edip yeniden dene.'
+        : unsupported
+          ? 'Bu model bu cihazda çalıştırılamadı. Başka bir model dene.'
+          : 'İndirilemedi: ' + e.message,
+    )
     patch(model, { status: 'error', error: err.message })
     throw err
   }
@@ -136,7 +165,7 @@ export async function askLocal({ model, system, prompt, onText, onStart, signal,
       { role: 'system', content: system },
       { role: 'user', content: prompt },
     ]
-    const { text } = await call({ type: 'gen', model, messages, max: maxTokens }, { onText, onStart })
+    const { text } = await call({ type: 'gen', model, dtype: readDtypes()[model], messages, max: maxTokens }, { onText, onStart })
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
     return text
   } finally {
