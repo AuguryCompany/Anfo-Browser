@@ -8,6 +8,9 @@ import { THEMES } from '../features/themes'
 import { WIDGETS } from '../features/Widgets'
 import { useGhInvalid } from '../features/gh'
 import LocalModels from '../features/LocalModels'
+import ModelLogo from '../features/ModelLogo'
+import { PROVIDERS, PROVIDER_IDS, providerOf, keyOf, modelOf, fetchModels, cachedModels } from '../features/providers'
+import { Plug } from 'lucide-react'
 import '../features/settings-extra.css'
 
 // İmza palet: kiraz. Diğerleri aynı doygunlukta yan tonlar.
@@ -179,6 +182,74 @@ const Seg = ({ k, value, options, sound }) => (
     ))}
   </div>
 )
+
+// Bulut AI: sağlayıcı seçimi, anahtar, model (listeden ya da elle) ve model listesini getirme.
+function CloudAi({ s }) {
+  const p = providerOf(s)
+  const def = PROVIDERS[p]
+  const [list, setList] = useState(() => cachedModels(p))
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  useEffect(() => {
+    setList(cachedModels(p))
+    setErr('')
+  }, [p])
+
+  const save = (k, sub) => (t) => setSetting(k, sub ? { ...s[k], [sub]: t } : t)
+  const load = async () => {
+    setBusy(true)
+    setErr('')
+    try {
+      setList(await fetchModels(s, p))
+    } catch (e) {
+      setErr(e.message || 'Liste alınamadı.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  const suggestions = [...new Set([...def.models, ...list])]
+
+  return (
+    <>
+      <div className="ap-grid" role="radiogroup" aria-label="AI sağlayıcısı">
+        {PROVIDER_IDS.map((id) => (
+          <button key={id} className="ap-btn" role="radio" aria-checked={p === id} aria-pressed={p === id} onClick={() => pick('aiProvider', id)}>
+            {PROVIDERS[id].logo ? <ModelLogo provider={id} size={17} /> : <Plug size={17} />}
+            {PROVIDERS[id].label}
+          </button>
+        ))}
+      </div>
+      {def.custom && (
+        <label className="field">
+          <span>Adres (OpenAI uyumlu)</span>
+          <SaveField value={s.aiBase} onSave={save('aiBase')} placeholder="http://192.168.1.5:11434/v1" autoComplete="off" spellCheck={false} />
+        </label>
+      )}
+      <label className="field">
+        <span>{def.label} API anahtarı</span>
+        <SaveField key={p} value={keyOf(s, p)} onSave={save('aiKeys', p)} type="password" placeholder={def.hint} autoComplete="off" spellCheck={false} />
+      </label>
+      <label className="field">
+        <span>
+          Model <small>{s.aiModels?.[p] ? '' : 'varsayılan'}</small>
+        </span>
+        <SaveField key={p + 'm'} value={s.aiModels?.[p] || ''} onSave={save('aiModels', p)} list="ai-models" placeholder={modelOf(s, p) || 'model adı'} autoComplete="off" spellCheck={false} />
+        <datalist id="ai-models">
+          {suggestions.map((m) => (
+            <option key={m} value={m} />
+          ))}
+        </datalist>
+      </label>
+      <div className="ap-row">
+        <button className="link" onClick={load} disabled={busy}>
+          {busy ? 'Getiriliyor…' : 'Modelleri getir'}
+        </button>
+        {list.length > 0 && <span>{list.length} model · yazınca öneriler çıkar</span>}
+        {err && <span className="sx-err">{err}</span>}
+      </div>
+    </>
+  )
+}
 
 const Toggle = ({ k, value, label, hint }) => (
   <label className="field line">
@@ -519,26 +590,14 @@ export default function Settings() {
         <section className="card" style={{ '--i': i++ }}>
           <h2>AI modu</h2>
           <Toggle k="ai" value={s.ai} label="Aramada AI özeti" />
-          {s.ai && <Seg k="aiEngine" value={s.aiEngine} options={{ local: 'Cihazda (ücretsiz)', cloud: 'Claude (API anahtarı)' }} />}
+          {s.ai && <Seg k="aiEngine" value={s.aiEngine} options={{ local: 'Cihazda (ücretsiz)', cloud: 'Bulut (API anahtarı)' }} />}
           {s.ai && s.aiEngine === 'local' && <LocalModels />}
-          {s.ai && s.aiEngine !== 'local' && (
-            <label className="field">
-              <span>Anthropic API anahtarı</span>
-              <SaveField
-                value={s.aiKey}
-                onSave={(t) => setSetting('aiKey', t)}
-                type="password"
-                placeholder="sk-ant-…"
-                autoComplete="off"
-                spellCheck={false}
-              />
-            </label>
-          )}
+          {s.ai && s.aiEngine !== 'local' && <CloudAi s={s} />}
           <p>
             Arama sonuçlarının üstünde kaynak numaralı kısa bir yanıt üretir{isNative ? '; yay menüsündeki “AI özeti” açık sayfayı özetler' : ''}.
             {s.aiEngine === 'local'
               ? ' Cihazda modu küçük bir modeli bu tarayıcının içinde çalıştırır; yanıtlar Claude kadar ayrıntılı olmayabilir.'
-              : ' Anahtar yalnızca bu cihazda saklanır ve yalnızca Anthropic’e gönderilir; kullanım kendi hesabından ücretlendirilir.'}
+              : ` Anahtar yalnızca bu cihazda saklanır ve yalnızca ${PROVIDERS[providerOf(s)].label}’e gönderilir; kullanım kendi hesabından ücretlendirilir.`}
           </p>
         </section>
 

@@ -63,3 +63,16 @@
 .lm-bar { display: block; height: 3px; margin-top: 0.2rem; border-radius: 3px; background: rgb(0 0 0 / 0.35); overflow: hidden; }
 .lm-bar i { display: block; height: 100%; background: var(--accent); transition: width 0.3s; }
 .ai-model { color: var(--muted); font-weight: 400; }
+
+/* AI sağlayıcı seçici ve model logosu (ModelLogo.jsx, Settings › AI modu). Önek: .ap- */
+.ai-logo { display: inline-flex; vertical-align: -0.15em; line-height: 0; }
+.ai-logo svg { width: 1em; height: 1em; }
+.ai-logo[data-live] { animation: ai-pulse 1.4s ease-in-out infinite; }
+@keyframes ai-pulse { 0%, 100% { opacity: 0.45; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ai-logo[data-live] { animation: none; } }
+.ap-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(8.2rem, 1fr)); gap: 0.35rem; }
+.ap-btn { display: flex; align-items: center; gap: 0.5rem; min-height: 2.5rem; padding: 0 0.7rem; border-radius: var(--r-sm); background: var(--frost); color: var(--muted); font-size: 0.8125rem; text-align: left; transition: background 0.3s, color 0.3s; }
+.ap-btn[aria-pressed='true'] { background: var(--frost-2); color: var(--text); }
+.ap-btn .ai-logo { font-size: 1.05rem; flex: none; }
+.ap-btn > svg { flex: none; }
+.ap-row { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--muted); }

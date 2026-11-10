@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
 import { isNative, WebTabs } from './native'
 import { play } from './sound'
+import { cloudReady } from './features/providers'
 
 const KEY = 'anfo:v3'
 
@@ -49,7 +50,10 @@ export const DEFAULT_SETTINGS = {
   // AI modu
   ai: true,
   aiEngine: 'local', // local: cihazda çalışan küçük model | cloud: Claude (API anahtarı)
-  aiKey: '',
+  aiProvider: 'anthropic', // anthropic | openrouter | openai | gemini | groq | custom
+  aiKeys: {}, // sağlayıcı → API anahtarı (yalnızca bu cihazda)
+  aiModels: {}, // sağlayıcı → seçili model (boşsa sağlayıcının varsayılanı)
+  aiBase: '', // özel sağlayıcı adresi (OpenAI uyumlu; ör. http://192.168.1.5:11434/v1)
   localModel: '', // seçili ve indirilmiş yerel model (boşsa yerel AI hazır değil)
   // ana sayfa ve görünüm
   widgets: [], // gösterilen widget'lar, sırasıyla — kullanıcı eklemeden hiçbiri görünmez
@@ -156,6 +160,11 @@ function load() {
   const settings = { ...DEFAULT_SETTINGS, ...savedSettings }
   // Yerel AI öncesi kayıtlar: API anahtarı girilmişse bulut AI ile devam et.
   if (savedSettings && !savedSettings.aiEngine && savedSettings.aiKey) settings.aiEngine = 'cloud'
+  // Tek Anthropic anahtarı → sağlayıcı başına anahtarlar.
+  if (savedSettings?.aiKey) {
+    settings.aiKeys = { anthropic: savedSettings.aiKey, ...(isObj(settings.aiKeys) ? settings.aiKeys : {}) }
+  }
+  delete settings.aiKey
   // Sürüm 4 öncesi kayıtlar için tek seferlik göç.
   if ((saved.v || 0) < 4 && savedSettings) {
     // Eski kayıtlar: tek renkli küçük ışığa geç.
@@ -367,7 +376,7 @@ export function setUi(ui, withSeed = '') {
 }
 
 // AI özeti kullanılabilir mi: yerel modda indirilmiş bir model, bulut modda API anahtarı gerekir.
-export const aiReady = (st) => !!st.ai && (st.aiEngine === 'local' ? !!st.localModel : !!st.aiKey)
+export const aiReady = (st) => !!st.ai && (st.aiEngine === 'local' ? !!st.localModel : cloudReady(st))
 
 // Açılır menüler yerel WebView'ın altında kalmasın diye açıkken sayılır (bkz. WebPane NativeSlot).
 export const popOpen = () => set((s) => ({ pop: s.pop + 1 }))
@@ -676,7 +685,7 @@ export async function memoryInfo() {
   return m ? { usedMB: Math.round(m.usedJSHeapSize / 1048576), maxMB: Math.round(m.jsHeapSizeLimit / 1048576) } : null
 }
 // Kullanıcı içeriği korunur; yalnızca görünüm ve davranış ayarları sıfırlanır.
-const USER_KEYS = ['aiKey', 'ghToken', 'ghClientId', 'notes', 'extensions', 'builtinExt', 'bangs', 'widgets', 'wallpaper', 'city', 'name']
+const USER_KEYS = ['aiKeys', 'aiModels', 'aiBase', 'ghToken', 'ghClientId', 'notes', 'extensions', 'builtinExt', 'bangs', 'widgets', 'wallpaper', 'city', 'name']
 export const resetSettings = () => {
   set((s) => {
     const keep = {}
@@ -687,7 +696,7 @@ export const resetSettings = () => {
 }
 
 // ---------- yedekleme ----------
-const SECRET_KEYS = ['aiKey', 'ghToken']
+const SECRET_KEYS = ['aiKeys', 'ghToken']
 // Ayarlar (anahtarlar hariç), sabitler ve okuma listesi → JSON metni.
 export function exportData() {
   const s = state

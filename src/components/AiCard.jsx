@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Sparkles } from 'lucide-react'
 import { useStore, navigate } from '../store'
+import ModelLogo from '../features/ModelLogo'
+import { providerOf, keyOf, modelOf, baseOf, PROVIDERS, shortModel } from '../features/providers'
 import { ask, LOCAL_SYSTEM } from '../ai'
 import { askLocal, modelName, crashedModel, clearCrash } from '../features/local-ai'
 
 const TIMEOUT_MS = 45000
 const LOCAL_IDLE_MS = 120000 // yerel model: ilk yükleme uzun sürebilir; her yeni parçada süre yenilenir
-const MIN_KEY_LEN = 20
+const MIN_KEY_LEN = 10
 const CACHE_MAX = 20
 
 // Aynı prompt için sonuç modül düzeyinde tutulur (en fazla 20; en eski silinir). Yalnızca başarılı yanıtlar yazılır.
@@ -27,8 +28,12 @@ function cachePut(k, v) {
 // Akan AI yanıtı. [1] gibi kaynak işaretleri, verilen kaynak listesine bağlanan küçük düğmelere dönüşür.
 // Yerel modda (cihazda çalışan model) localPrompt kullanılır; verilmezse prompt kısaltılarak gönderilir.
 export default function AiCard({ prompt, localPrompt, sources = [], label = 'AI özeti', maxTokens = 1500 }) {
-  const key = useStore((s) => s.settings.aiKey)
-  const local = useStore((s) => s.settings.aiEngine === 'local')
+  const st = useStore((s) => s.settings)
+  const provider = providerOf(st)
+  const key = keyOf(st)
+  const cloudModel = modelOf(st)
+  const base = baseOf(st)
+  const local = st.aiEngine === 'local'
   const model = useStore((s) => s.settings.localModel)
   const [text, setText] = useState('')
   const [error, setError] = useState('')
@@ -103,14 +108,15 @@ export default function AiCard({ prompt, localPrompt, sources = [], label = 'AI 
     if (local) return
     setError('')
     setDone(false)
-    const hit = cacheGet(prompt)
+    const ck = provider + '\n' + cloudModel + '\n' + prompt
+    const hit = cacheGet(ck)
     if (hit !== undefined) {
       setText(hit)
       setDone(true)
       return
     }
     setText('')
-    if (!key || key.trim().length < MIN_KEY_LEN) {
+    if (!PROVIDERS[provider].custom && key.length < MIN_KEY_LEN) {
       setError('AI için geçerli bir API anahtarı gerekli.')
       return
     }
@@ -122,10 +128,10 @@ export default function AiCard({ prompt, localPrompt, sources = [], label = 'AI 
       timedOut = true
       ac.abort()
     }, TIMEOUT_MS)
-    ask({ key, prompt, maxTokens, onText: setText, signal: ac.signal }).then(
+    ask({ provider, key, base, model: cloudModel, prompt, maxTokens, onText: setText, signal: ac.signal }).then(
       (full) => {
         clearTimeout(timer)
-        cachePut(prompt, full)
+        cachePut(ck, full)
         setDone(true)
       },
       (e) => {
@@ -138,14 +144,20 @@ export default function AiCard({ prompt, localPrompt, sources = [], label = 'AI 
       clearTimeout(timer)
       ac.abort()
     }
-  }, [local, key, prompt, maxTokens, attempt])
+  }, [local, provider, key, base, cloudModel, prompt, maxTokens, attempt])
 
   const parts = text.split(/(\[\d+\])/g)
   return (
     <article className="card ai" data-live={!done && !error ? '' : undefined} aria-live="polite">
       <small>
-        <Sparkles size={13} /> {label}
+        <ModelLogo provider={local ? 'local' : provider} model={local ? model : cloudModel} size={14} live={!done && !error} /> {label}
         {local && model && <span className="ai-model"> · {modelName(model)} · cihazda</span>}
+        {!local && cloudModel && (
+          <span className="ai-model">
+            {' '}
+            · {shortModel(cloudModel)} · {PROVIDERS[provider].label}
+          </span>
+        )}
       </small>
       {error ? (
         <>
