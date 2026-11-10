@@ -61,6 +61,9 @@ export const DEFAULT_SETTINGS = {
   aiBases: {}, // sağlayıcı → adres (Azure, Alibaba Cloud bölgesi, özel OpenAI uyumlu sunucu)
   localModel: '', // seçili ve indirilmiş yerel model (boşsa yerel AI hazır değil)
   // ana sayfa ve görünüm
+  lang: '', // dil (boşsa cihaz dili) — ilk açılışta sorulur, isteğe bağlı
+  country: '', // ülke kodu (boşsa dilden tahmin) — haber, piyasa, arama bölgesi
+  onboarded: false, // ilk açılış karşılama ekranı gösterildi mi
   market: { items: [], range: '1d' }, // Piyasa widget'ı: [{ s: sembol, big: grafikli mi }]; boşsa varsayılan liste
   news: { topic: 'Gündem', count: 5 }, // Haberler widget'ı
   widgets: [], // gösterilen widget'lar, sırasıyla — kullanıcı eklemeden hiçbiri görünmez

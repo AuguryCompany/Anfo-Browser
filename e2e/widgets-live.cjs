@@ -19,7 +19,7 @@ const base = process.argv[2] || 'http://localhost:4173'
   await p.evaluate(() => {
     const d = JSON.parse(localStorage.getItem('anfo:v3') || '{}')
     d.v = 6
-    d.settings = { ...(d.settings || {}), widgets: ['market', 'news'] }
+    d.settings = { ...(d.settings || {}), widgets: ['market', 'news'], onboarded: true }
     localStorage.setItem('anfo:v3', JSON.stringify(d))
   })
   await p.reload()

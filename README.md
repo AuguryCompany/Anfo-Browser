@@ -168,6 +168,15 @@ Tüm veriler (sekmeler, geçmiş, sabitler, ayarlar) yalnızca cihazda, `localSt
 - WebView'ın her isteğe eklediği `X-Requested-With` başlığı kaldırılır, kimlik Chrome'unki gibidir (`; wv` yok): bot korumalı siteler (Cloudflare vb.) uygulamayı engellemez.
 - Yüklenemeyen sayfalarda nedeni Türkçe açıklayan kendi hata sayfası ve "Yeniden dene".
 
+### İlk açılış: dil ve ülke
+
+İlk açılışta dil ve ülke sorulur; ikisi de isteğe bağlı (seçilmezse cihaz dili). Ayarlar › Bölge'den değiştirilir, yalnızca cihazda saklanır. Buna göre:
+
+- Haberler: Google Haberler'in o dil/ülke sürümü; konular dile bağımsız bölümlerden (Ekonomi = BUSINESS, Teknoloji = TECHNOLOGY…).
+- Piyasa: varsayılan liste S&P 500 + Nasdaq + ülkenin endeksi (BIST 100, DAX, FTSE 100, CAC 40, Nikkei 225…) + rastgele iki büyük hisse.
+- Arama: DuckDuckGo bölgesi, öneriler ve Vikipedi dili.
+- Arayüz şimdilik Türkçe.
+
 ## Klasör yapısı
 
 | Yol | İçerik |

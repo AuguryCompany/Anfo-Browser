@@ -3,20 +3,41 @@ import { RotateCw } from 'lucide-react'
 import { useStore, setSetting, navigate } from '../store'
 import { getText } from './net'
 import { isNative } from '../native'
+import { newsParams, AI_WORD, COUNTRIES, region } from './region'
 
 // Haberler widget'ı: seçilen konuyla ilgili güncel başlıklar (Google Haberler RSS, Türkçe).
 // Yalnızca konu metni gönderilir; çerez gönderilmez (Android'de yerel HTTP).
-export const TOPICS = ['Gündem', 'Ekonomi', 'Teknoloji', 'Bilim', 'Spor', 'Dünya', 'Borsa', 'Yapay zekâ']
+// Konular Google Haberler'in dile bağımsız bölümlerine eşlenir; böylece seçilen dil/ülkede doğru haberler gelir.
+// Bölümü olmayanlar (Yapay zekâ, kendi konun) arama olarak, seçili dilde sorulur.
+const SECTIONS = {
+  Gündem: null,
+  Ülke: 'NATION',
+  Dünya: 'WORLD',
+  Ekonomi: 'BUSINESS',
+  Teknoloji: 'TECHNOLOGY',
+  Bilim: 'SCIENCE',
+  Sağlık: 'HEALTH',
+  Spor: 'SPORTS',
+  Eğlence: 'ENTERTAINMENT',
+  'Yapay zekâ': 'search:ai',
+}
+export const TOPICS = Object.keys(SECTIONS)
 const TTL = 10 * 60000
-const cache = new Map() // konu → { t, v }
+const cache = new Map() // `${ceid}|${konu}` → { t, v }
 
-const feedUrl = (topic) =>
-  topic === 'Gündem'
-    ? 'https://news.google.com/rss?hl=tr&gl=TR&ceid=TR:tr'
-    : 'https://news.google.com/rss/search?q=' + encodeURIComponent(topic + ' when:2d') + '&hl=tr&gl=TR&ceid=TR:tr'
+function feedUrl(topic) {
+  const np = newsParams()
+  const qs = `hl=${np.hl}&gl=${np.gl}&ceid=${encodeURIComponent(np.ceid)}`
+  const sec = Object.prototype.hasOwnProperty.call(SECTIONS, topic) ? SECTIONS[topic] : 'search:' + topic
+  if (sec === null) return 'https://news.google.com/rss?' + qs
+  if (!sec.startsWith('search:')) return `https://news.google.com/rss/headlines/section/topic/${sec}?` + qs
+  const q = sec === 'search:ai' ? AI_WORD[np.hl] || AI_WORD.en : sec.slice(7)
+  return 'https://news.google.com/rss/search?q=' + encodeURIComponent(q + ' when:2d') + '&' + qs
+}
 
 async function fetchNews(topic, signal) {
-  const hit = cache.get(topic)
+  const key = newsParams().ceid + '|' + topic
+  const hit = cache.get(key)
   if (hit && Date.now() - hit.t < TTL) return hit.v
   const xml = await getText(feedUrl(topic), null, signal)
   const doc = new DOMParser().parseFromString(xml, 'text/xml')
@@ -27,7 +48,7 @@ async function fetchNews(topic, signal) {
     if (source && title.endsWith(' - ' + source)) title = title.slice(0, -(source.length + 3))
     return { title, link: it.querySelector('link')?.textContent || '', source, at: Date.parse(it.querySelector('pubDate')?.textContent || '') || 0 }
   })
-  cache.set(topic, { t: Date.now(), v })
+  cache.set(key, { t: Date.now(), v })
   return v
 }
 
@@ -47,6 +68,8 @@ export default function News() {
   const [err, setErr] = useState('')
   const [draft, setDraft] = useState('')
   const [rev, setRev] = useState(0)
+  const where = useStore((s) => s.settings.country + '|' + s.settings.lang) // bölge değişince yeniden yüklenir
+  const country = region().country
 
   useEffect(() => {
     const ac = new AbortController()
@@ -56,7 +79,7 @@ export default function News() {
       (e) => e.name !== 'AbortError' && (setItems([]), setErr('Haberler alınamadı.' + (isNative ? '' : ' Web sürümünde tarayıcı bu kaynağı engelleyebilir.'))),
     )
     return () => ac.abort()
-  }, [topic, rev])
+  }, [topic, rev, where])
 
   const setTopic = (t) => setSetting('news', { ...cfg, topic: t })
   const custom = !TOPICS.includes(topic)
@@ -66,7 +89,7 @@ export default function News() {
       <div className="nw-topics" role="radiogroup" aria-label="Haber konusu">
         {[...TOPICS, ...(custom ? [topic] : [])].map((t) => (
           <button key={t} role="radio" aria-checked={t === topic} className="nw-chip" onClick={() => setTopic(t)}>
-            {t}
+            {t === 'Ülke' ? (country ? COUNTRIES[country].name : 'Ülke') : t}
           </button>
         ))}
         <form
@@ -79,7 +102,7 @@ export default function News() {
         >
           <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Kendi konun…" aria-label="Kendi haber konun" enterKeyHint="done" />
         </form>
-        <button className="nw-chip" aria-label="Yenile" onClick={() => (cache.delete(topic), setRev((v) => v + 1))}>
+        <button className="nw-chip" aria-label="Yenile" onClick={() => (cache.delete(newsParams().ceid + '|' + topic), setRev((v) => v + 1))}>
           <RotateCw size={12} />
         </button>
       </div>

@@ -4,6 +4,7 @@
 //    IP'lerini sık engeller (429); telefonda genelde çalışır.
 // Yalnızca sembol gönderilir; Android'de yerel HTTP (çerez yok).
 import { getJson } from './net'
+import { defaultIndices, region } from './region'
 
 export const RANGES = {
   '1d': { label: '1G', cnbc: '1D', range: '1d', interval: '5m' },
@@ -13,17 +14,16 @@ export const RANGES = {
   max: { label: 'TÜMÜ', cnbc: 'ALL', range: 'max', interval: '1mo' },
 }
 
-// Hiçbir şey seçilmediyse: başlıca endeksler + rastgele iki büyük hisse (oturum boyunca aynı).
+// Hiçbir şey seçilmediyse: ülkenin endeksi + S&P 500 + Nasdaq ve rastgele iki büyük hisse (oturum boyunca aynı).
 const BIG = ['AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'AVGO', 'JPM', 'TSM', 'NFLX', 'AMD']
 const pick = [...BIG].sort(() => Math.random() - 0.5).slice(0, 2)
-export const DEFAULT_ITEMS = [
-  { s: '.SPX', big: true },
-  { s: '.IXIC', big: false },
-  { s: '.XU100', big: false },
-  ...pick.map((s) => ({ s, big: false })),
-]
+export const defaultItems = () => [...defaultIndices().map((s, i) => ({ s, big: i === 0 })), ...pick.map((s) => ({ s, big: false }))]
 
-const NAMES = { '.SPX': 'S&P 500', '.IXIC': 'Nasdaq', '.NDX': 'Nasdaq 100', '.DJI': 'Dow Jones', '.XU100': 'BIST 100', '.XU030': 'BIST 30' }
+const NAMES = {
+  '.SPX': 'S&P 500', '.IXIC': 'Nasdaq', '.NDX': 'Nasdaq 100', '.DJI': 'Dow Jones', '.XU100': 'BIST 100', '.XU030': 'BIST 30',
+  '.FTSE': 'FTSE 100', '.GDAXI': 'DAX', '.FCHI': 'CAC 40', '.IBEX': 'IBEX 35', '.FTMIB': 'FTSE MIB', '.AEX': 'AEX',
+  '.N225': 'Nikkei 225', '.GSPTSE': 'S&P/TSX', '.AXJO': 'ASX 200', '.DFMGI': 'Dubai DFM',
+}
 const num = (v) => {
   if (v == null || v === '') return null
   const n = parseFloat(String(v).replace(/,/g, ''))
@@ -132,7 +132,7 @@ const TYPES_YAHOO = { EQUITY: 'Hisse', ETF: 'Fon (ETF)', MUTUALFUND: 'Yatırım 
 export async function searchSymbols(q, signal) {
   const [c, y] = await Promise.allSettled([
     getJson('https://symlookup.cnbc.com/symservice/symlookup.do', { prefix: q, partnerid: '20064', pgok: '1', pgsize: '8' }, signal),
-    getJson('https://query1.finance.yahoo.com/v1/finance/search', { q, quotesCount: '6', newsCount: '0', lang: 'tr-TR', region: 'TR' }, signal),
+    getJson('https://query1.finance.yahoo.com/v1/finance/search', { q, quotesCount: '6', newsCount: '0', lang: region().lang, region: region().country || 'US' }, signal),
   ])
   const out = []
   const seen = new Set()

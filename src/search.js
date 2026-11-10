@@ -3,6 +3,7 @@
 //  - Web: tarayıcı güvenliği (CORS) genel arama motorlarını engeller; Vikipedi (TR + EN) kullanılır.
 import { CapacitorHttp } from '@capacitor/core'
 import { isNative } from './native'
+import { ddgRegion, wikiLang } from './features/region'
 
 const wikiApi = (lang) => `https://${lang}.wikipedia.org/w/api.php?origin=*&format=json&`
 
@@ -47,7 +48,7 @@ const cleanHref = (href) => {
 const parse = (html) => new DOMParser().parseFromString(String(html), 'text/html')
 
 async function ddgHtml(q) {
-  const r = await nativePost('https://html.duckduckgo.com/html/', { q, kl: 'tr-tr' })
+  const r = await nativePost('https://html.duckduckgo.com/html/', { q, kl: ddgRegion() })
   if (r.status !== 200) return []
   return [...parse(r.data).querySelectorAll('.result')]
     .map((el) => {
@@ -59,7 +60,7 @@ async function ddgHtml(q) {
 }
 
 async function ddgLite(q) {
-  const r = await nativePost('https://lite.duckduckgo.com/lite/', { q, kl: 'tr-tr' })
+  const r = await nativePost('https://lite.duckduckgo.com/lite/', { q, kl: ddgRegion() })
   if (r.status !== 200) return []
   const doc = parse(r.data)
   const snippets = [...doc.querySelectorAll('td.result-snippet')]
@@ -127,14 +128,14 @@ export async function search(q, signal) {
 }
 
 async function searchFresh(q, signal) {
-  const [tr, webRes] = await Promise.allSettled([wiki(q, 'tr', signal), isNative ? web(q) : []])
+  const [tr, webRes] = await Promise.allSettled([wiki(q, wikiLang(), signal), isNative ? web(q) : []])
   const found = webRes.value || []
   let pedia = tr.value || []
-  // Türkçe sonuç azsa (ve web sonucu yoksa) İngilizce Vikipedi ile tamamla.
-  if (pedia.length < 4 && !found.length) pedia = [...pedia, ...(await wiki(q, 'en', signal).catch(() => []))]
+  // Seçili dilde sonuç azsa (ve web sonucu yoksa) İngilizce Vikipedi ile tamamla.
+  if (pedia.length < 4 && !found.length && wikiLang() !== 'en') pedia = [...pedia, ...(await wiki(q, 'en', signal).catch(() => []))]
   if (!pedia.length && !found.length) {
     const r = relax(q)
-    if (r && r !== norm(q)) pedia = await wiki(r, 'tr', signal).catch(() => [])
+    if (r && r !== norm(q)) pedia = await wiki(r, wikiLang(), signal).catch(() => [])
   }
   if (signal.aborted) throw new DOMException('aborted', 'AbortError')
   if (!pedia.length && !found.length && tr.status === 'rejected') throw tr.reason
@@ -149,12 +150,12 @@ async function searchFresh(q, signal) {
 export async function suggest(q, signal) {
   if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
   if (isNative) {
-    const r = await nativeGet('https://duckduckgo.com/ac/', { q, type: 'list', kl: 'tr-tr' })
+    const r = await nativeGet('https://duckduckgo.com/ac/', { q, type: 'list', kl: ddgRegion() })
     // Native istek iptali desteklemez; iptal edildiyse sonucu yok sayıp AbortError fırlat.
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
     const j = typeof r.data === 'string' ? JSON.parse(r.data) : r.data
     return (j[1] || []).slice(0, 5)
   }
-  const j = await (await fetch(wikiApi('tr') + 'action=opensearch&limit=5&search=' + encodeURIComponent(q), { signal })).json()
+  const j = await (await fetch(wikiApi(wikiLang()) + 'action=opensearch&limit=5&search=' + encodeURIComponent(q), { signal })).json()
   return j[1] || []
 }

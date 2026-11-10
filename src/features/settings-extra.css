@@ -84,3 +84,6 @@
 .ap-opt { min-height: 2.1rem; padding: 0 0.6rem; text-align: left; border-radius: 8px; background: none; color: var(--muted); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ap-opt:hover, .ap-opt[aria-selected='true'] { background: var(--frost-2); color: var(--text); }
 .ap-none { padding: 0.6rem; color: var(--muted); font-size: 0.75rem; }
+
+.sx-select { min-width: 10rem; color: var(--text); appearance: none; -webkit-appearance: none; cursor: pointer; }
+.sx-select option { background: var(--s2, #111); color: var(--text); }

@@ -8,6 +8,7 @@ import { THEMES } from '../features/themes'
 import { WIDGETS } from '../features/Widgets'
 import { useGhInvalid } from '../features/gh'
 import LocalModels from '../features/LocalModels'
+import { LANGS, COUNTRIES } from '../features/region'
 import ModelLogo from '../features/ModelLogo'
 import { PROVIDERS, PROVIDER_IDS, providerOf, keyOf, modelOf, fetchModels, cachedModels } from '../features/providers'
 import { Plug } from 'lucide-react'
@@ -774,6 +775,33 @@ export default function Settings() {
           <Toggle k="tabStrip" value={s.tabStrip} label="Tablet/PC sekme şeridi" />
           <Toggle k="toolbar" value={s.toolbar !== false} label="Tablet/PC araç çubuğu" hint="geri, ileri, adres alanı ve menü — Chrome gibi" />
           <Toggle k="bookmarksBar" value={s.bookmarksBar !== false} label="Yer imleri çubuğu" hint="Ctrl+Shift+B" />
+        </section>
+
+        <section className="card" style={{ '--i': i++ }}>
+          <h2>Bölge</h2>
+          <label className="field line">
+            <span>Dil</span>
+            <select className="text sx-select" value={s.lang || ''} onChange={(e) => setSetting('lang', e.target.value)}>
+              <option value="">Cihaz dili</option>
+              {Object.entries(LANGS).map(([k, l]) => (
+                <option key={k} value={k}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field line">
+            <span>Ülke</span>
+            <select className="text sx-select" value={s.country || ''} onChange={(e) => setSetting('country', e.target.value)}>
+              <option value="">Seçilmedi</option>
+              {Object.entries(COUNTRIES).map(([k, c]) => (
+                <option key={k} value={k}>
+                  {c.flag} {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>Haberler, piyasa widget’ındaki varsayılan endeksler, arama bölgesi ve Vikipedi dili buna göre ayarlanır. Yalnızca bu cihazda saklanır.</p>
         </section>
 
         <section className="card" style={{ '--i': i++ }}>

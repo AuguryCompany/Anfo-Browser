@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import { Settings2, Plus, X, Search, RotateCcw } from 'lucide-react'
 import { useStore, setSetting, navigate } from '../store'
-import { loadQuotes, searchSymbols, RANGES, DEFAULT_ITEMS, money, pct } from './market'
+import { loadQuotes, searchSymbols, RANGES, defaultItems, money, pct } from './market'
 import { isNative } from '../native'
 
 // Piyasa widget'ı: seçilen hisse/fon/endeksler. Her biri küçük (satır + mini çizgi) ya da grafikli (büyük grafik).
@@ -196,7 +196,9 @@ function Editor({ items, save, close }) {
 export default function Market() {
   const cfg = useStore((s) => s.settings.market) || {}
   const mine = Array.isArray(cfg.items) ? cfg.items.filter((x) => x && typeof x.s === 'string') : []
-  const items = mine.length ? mine : DEFAULT_ITEMS
+  const where = useStore((s) => s.settings.country + '|' + s.settings.lang) // bölge değişince varsayılan liste yenilenir
+  const defaults = useMemo(() => defaultItems(), [where]) // eslint-disable-line react-hooks/exhaustive-deps
+  const items = mine.length ? mine : defaults
   const range = RANGES[cfg.range] ? cfg.range : '1d'
   const [edit, setEdit] = useState(false)
   const syms = useMemo(() => items.map((x) => x.s), [items])
