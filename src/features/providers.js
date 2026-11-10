@@ -38,7 +38,7 @@ export const PROVIDERS = {
     models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'],
   },
   azure: {
-    label: 'Azure OpenAI',
+    label: 'Azure',
     logo: 'azure',
     hint: 'Azure anahtarı',
     models: [], // Azure'da model yerine, kendi oluşturduğun dağıtımın (deployment) adı yazılır
