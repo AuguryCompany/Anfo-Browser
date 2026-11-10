@@ -19,6 +19,8 @@ let device = null
 let genDtype = null
 
 const post = (m) => self.postMessage(m)
+// ONNX Runtime oturum ayarları. 'load' mesajıyla değiştirilebilir (bellek deneyleri için: e2e/llm-mem.cjs).
+let sessionOptions
 
 // transformers.js varsayılan olarak WebGPU için derlenmiş 'asyncify' ORT yapısını yükler; o yapının işlemci
 // motorunda 4 bit gömme katmanı işlemi (GatherBlockQuantized) yok. WebGPU yoksa düz WASM yapısı kullanılır.
@@ -58,7 +60,7 @@ async function create(model, preferred, onProgress) {
       try {
         // Not: ORT'nin CPU arenasını kapatmak (enableCpuMemArena: false) WASM'da üretimi onlarca kat yavaşlattı
         // (GitHub testinde 30 dk+); bu yüzden varsayılan ayarlar kullanılır.
-        const p = await pipeline('text-generation', model, { dtype, device: dev, progress_callback: onProgress })
+        const p = await pipeline('text-generation', model, { dtype, device: dev, progress_callback: onProgress, session_options: sessionOptions })
         console.info(`[anfo-llm] ${model} ${dev}/${dtype} girdiler: ${(p.model.sessions?.model?.inputNames || []).join(',')}`)
         device = dev
         return { p, dtype }
@@ -165,6 +167,7 @@ self.onmessage = async ({ data: m }) => {
   try {
     switch (m.type) {
       case 'load':
+        if (m.session) sessionOptions = m.session
         await load(m.model, m.dtype)
         post({ type: 'ready', id: m.id, model: m.model, device, dtype: genDtype })
         break
