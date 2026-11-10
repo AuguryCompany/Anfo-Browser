@@ -49,6 +49,9 @@ Ekranın altındaki (ya da ayarlanabilir olarak üstteki) Ada, tarayıcının t�
 23. GitHub kartı: bağlıysa profil, okunmamış bildirim sayısı ve son iki depo.
 24. İstatistik: engellenen istek, açık sekme ve geçmiş site sayısı.
 25. Takvim: gün, ay ve yılın ilerlemesi.
+    - Piyasa: hisse, fon (ETF / yatırım fonu), endeks, kripto ve döviz aranıp eklenir; her biri küçük (satır + mini çizgi) ya da grafikli (1G / 1H / 1A / 1Y / tümü). Hiçbiri seçilmezse S&P 500, Nasdaq, BIST 100 ve rastgele iki büyük hisse. Veri Yahoo Finance'in anahtarsız uç noktasından, dakikada bir yenilenir.
+    - Haberler: Gündem, Ekonomi, Teknoloji… ya da kendi konun; Google Haberler (Türkçe) başlıkları, 3 / 5 / 8 haber.
+    - Android'de bu istekler yerel HTTP ile yapılır (WebView çerezi gönderilmez); web sürümünde tarayıcı CORS ile engelleyebilir.
 26. Widget'lar Ayarlar'dan açılıp kapatılır ve sıralanır.
 
 ### GitHub arayüzü (kişisel erişim anahtarı ile)

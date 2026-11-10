@@ -3,7 +3,7 @@ name: Yerel AI testi
 # Cihazda çalışan modelleri başsız Chromium'da (WASM, telefondaki gibi) indirip çalıştırır.
 on:
   push:
-    paths: ['src/features/llm.worker.js', 'src/features/local-ai.js', 'e2e/**', '.github/workflows/ai-test.yml']
+    paths: ['src/features/llm.worker.js', 'src/features/local-ai.js', 'src/features/market.js', 'src/features/News.jsx', 'e2e/**', '.github/workflows/ai-test.yml']
   workflow_dispatch:
 
 jobs:
@@ -16,6 +16,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Piyasa ve haber uç noktaları
+        continue-on-error: true
+        run: node e2e/net-check.cjs
       - run: npm ci
       - run: npm run build
       - name: Playwright

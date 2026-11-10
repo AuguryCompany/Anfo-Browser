@@ -61,6 +61,8 @@ export const DEFAULT_SETTINGS = {
   aiBases: {}, // sağlayıcı → adres (Azure, Alibaba Cloud bölgesi, özel OpenAI uyumlu sunucu)
   localModel: '', // seçili ve indirilmiş yerel model (boşsa yerel AI hazır değil)
   // ana sayfa ve görünüm
+  market: { items: [], range: '1d' }, // Piyasa widget'ı: [{ s: sembol, big: grafikli mi }]; boşsa varsayılan liste
+  news: { topic: 'Gündem', count: 5 }, // Haberler widget'ı
   widgets: [], // gösterilen widget'lar, sırasıyla — kullanıcı eklemeden hiçbiri görünmez
   pinShape: 'circle', // circle | squircle | square
   pinCount: 6,

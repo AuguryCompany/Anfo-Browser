@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useStore, setSetting, notify } from '../store'
 import { play } from '../sound'
 import { GitHubWidget } from './GitHub'
+import Market from './Market'
+import News from './News'
 import {
   Sun,
   Moon,
@@ -27,6 +29,8 @@ export const WIDGETS = {
   github: 'GitHub',
   stats: 'İstatistik',
   date: 'Takvim',
+  market: 'Piyasa',
+  news: 'Haberler',
 }
 
 const two = (n) => String(n).padStart(2, '0')
@@ -611,6 +615,8 @@ const RENDER = {
   github: GitHubWidget,
   stats: Stats,
   date: DateWidget,
+  market: Market,
+  news: News,
 }
 
 export default function Widgets() {
