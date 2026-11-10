@@ -56,14 +56,9 @@ async function create(model, preferred, onProgress) {
     const order = preferred && list.includes(preferred) ? [preferred, ...list.filter((d) => d !== preferred)] : list
     for (const dtype of order) {
       try {
-        // Bellek: ORT'nin CPU arenası ve bellek deseni ön ayırması kapatılır; telefonda tepe bellek düşer
-        // (arena, tensörler serbest kalsa da belleği geri vermez).
-        const p = await pipeline('text-generation', model, {
-          dtype,
-          device: dev,
-          progress_callback: onProgress,
-          session_options: { enableCpuMemArena: false, enableMemPattern: false },
-        })
+        // Not: ORT'nin CPU arenasını kapatmak (enableCpuMemArena: false) WASM'da üretimi onlarca kat yavaşlattı
+        // (GitHub testinde 30 dk+); bu yüzden varsayılan ayarlar kullanılır.
+        const p = await pipeline('text-generation', model, { dtype, device: dev, progress_callback: onProgress })
         console.info(`[anfo-llm] ${model} ${dev}/${dtype} girdiler: ${(p.model.sessions?.model?.inputNames || []).join(',')}`)
         device = dev
         return { p, dtype }
