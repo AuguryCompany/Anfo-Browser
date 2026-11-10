@@ -20,6 +20,7 @@ import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
@@ -436,6 +437,17 @@ public class WebTabsPlugin extends Plugin {
         blocked.put(id, new AtomicInteger());
 
         w.setWebViewClient(new WebViewClient() {
+            // Renderer olurse (bellek yetmezligi) sekme WebView'i atilir; uygulama kapanmaz.
+            // Sekme bir sonraki yuklemede yeniden olusturulur.
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                if (tabs.get(id) == view) tabs.remove(id);
+                loading.remove(id);
+                container.removeView(view);
+                view.destroy();
+                return true;
+            }
+
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
                 return filter(id, request);

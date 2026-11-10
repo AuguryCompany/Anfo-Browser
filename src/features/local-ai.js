@@ -117,7 +117,8 @@ function call(msg, extra = {}) {
 
 // Hangi modellerin önbellekte olduğunu denetler ve durumu günceller. İndirilmiş model kimliklerini döndürür.
 export async function refreshLocal() {
-  const { cached } = await call({ type: 'cached', models: LOCAL_MODELS.map((m) => m.id), dtypes: readDtypes() })
+  const { cached, dtypes } = await call({ type: 'cached', models: LOCAL_MODELS.map((m) => m.id), dtypes: readDtypes() })
+  for (const [model, d] of Object.entries(dtypes || {})) saveDtype(model, d)
   for (const [model, ok] of Object.entries(cached)) {
     const cur = state[model]?.status
     if (cur === 'downloading') continue
@@ -137,7 +138,8 @@ export async function measureLocal(model) {
 export async function downloadLocal(model) {
   patch(model, { status: 'downloading', progress: 0, loaded: 0, error: '' })
   try {
-    await call({ type: 'load', model, dtype: readDtypes()[model] })
+    setBusy(model)
+    await call({ type: 'load', model, dtype: readDtypes()[model] }).finally(() => setBusy(null))
   } catch (e) {
     const net = /fetch|network|load resource/i.test(e.message)
     const unsupported = /session|implementation|backend/i.test(e.message)
@@ -155,6 +157,27 @@ export async function downloadLocal(model) {
 
 export const deleteLocal = (model) => call({ type: 'delete', model })
 
+// Model çalışırken uygulama kapanırsa (bellek yetmezliği) bir sonraki açılışta aynı model kendiliğinden
+// yeniden çalıştırılmaz; yoksa her aramada çökme döngüsü olur. Kullanıcı "Yeniden dene" ile bayrağı kaldırır.
+const BUSY_KEY = 'anfo:llm-busy'
+let crashed = null
+try {
+  crashed = localStorage.getItem(BUSY_KEY)
+  localStorage.removeItem(BUSY_KEY)
+} catch {
+  /* yok say */
+}
+export const crashedModel = () => crashed
+export const clearCrash = () => (crashed = null)
+const setBusy = (model) => {
+  try {
+    if (model) localStorage.setItem(BUSY_KEY, model)
+    else localStorage.removeItem(BUSY_KEY)
+  } catch {
+    /* yok say */
+  }
+}
+
 // Yerel modelle metin üretir. onText her parçada o ana kadarki tam metni alır.
 export async function askLocal({ model, system, prompt, onText, onStart, signal, maxTokens = 320 }) {
   if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
@@ -165,7 +188,10 @@ export async function askLocal({ model, system, prompt, onText, onStart, signal,
       { role: 'system', content: system },
       { role: 'user', content: prompt },
     ]
-    const { text } = await call({ type: 'gen', model, dtype: readDtypes()[model], messages, max: maxTokens }, { onText, onStart })
+    setBusy(model)
+    const { text } = await call({ type: 'gen', model, dtype: readDtypes()[model], messages, max: maxTokens }, { onText, onStart }).finally(() =>
+      setBusy(null),
+    )
     if (signal?.aborted) throw new DOMException('aborted', 'AbortError')
     return text
   } finally {

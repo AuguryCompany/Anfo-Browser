@@ -7,8 +7,9 @@ env.allowLocalModels = false
 
 // Nicemleme türü cihaza göre seçilir. WASM (işlemci) motoru 4 bit modellerin gömme katmanındaki
 // GatherBlockQuantized işlemini desteklemez; orada 8 bit kullanılır. Bir tür oturum açamazsa sıradaki denenir.
-// fp16: bazı modellerin (Gemma 3) 8 bit sürümü de GatherBlockQuantized kullanır; işlemcide son çare olarak 16 bit denenir.
-const CANDIDATES = { webgpu: ['q4f16', 'q4', 'q8'], wasm: ['q8', 'fp16'] }
+// İşlemcide (WASM) 4 bit modeller için düz ORT yapısı kullanılır (bkz. usePlainWasm); 8 bit sürümler
+// küçük dil modellerinde bozuk/tekrarlı çıktı ürettiği ve iki kat bellek tükettiği için yalnızca son çaredir.
+const CANDIDATES = { webgpu: ['q4f16', 'q4'], wasm: ['q4', 'q8'] }
 const ALL_DTYPES = ['q4f16', 'q4', 'q8', 'int8', 'uint8', 'fp16']
 const stopper = new InterruptableStoppingCriteria()
 let gen = null // yüklü pipeline
@@ -19,6 +20,16 @@ let genDtype = null
 
 const post = (m) => self.postMessage(m)
 
+// transformers.js varsayılan olarak WebGPU için derlenmiş 'asyncify' ORT yapısını yükler; o yapının işlemci
+// motorunda 4 bit gömme katmanı işlemi (GatherBlockQuantized) yok. WebGPU yoksa düz WASM yapısı kullanılır.
+function usePlainWasm() {
+  const o = env.backends.onnx
+  const v = o?.versions?.web
+  if (!o?.wasm || !v) return
+  const pre = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${v}/dist/`
+  o.wasm.wasmPaths = { mjs: pre + 'ort-wasm-simd-threaded.mjs', wasm: pre + 'ort-wasm-simd-threaded.wasm' }
+}
+
 async function pickDevice() {
   if (device) return device
   try {
@@ -26,6 +37,7 @@ async function pickDevice() {
   } catch {
     /* WebGPU yok */
   }
+  usePlainWasm()
   return (device = 'wasm')
 }
 
@@ -39,6 +51,7 @@ async function create(model, preferred, onProgress) {
   const devices = (await pickDevice()) === 'webgpu' ? ['webgpu', 'wasm'] : ['wasm']
   let last
   for (const dev of devices) {
+    if (dev === 'wasm') usePlainWasm()
     const list = CANDIDATES[dev]
     const order = preferred && list.includes(preferred) ? [preferred, ...list.filter((d) => d !== preferred)] : list
     for (const dtype of order) {
@@ -145,11 +158,21 @@ self.onmessage = async ({ data: m }) => {
       case 'cached': {
         const out = {}
         // Kayıtlı (çalıştığı bilinen) türle bakılır; kayıt yoksa model indirilmiş sayılmaz.
+        // Kayıt yoksa (ör. uygulama yükleme sırasında kapandıysa) cihaza uygun türler sırayla denetlenir.
+        const found = {}
         for (const model of m.models) {
-          const d = m.dtypes?.[model]
-          out[model] = d ? await ModelRegistry.is_cached(model, { dtype: d }).catch(() => false) : false
+          const known = m.dtypes?.[model]
+          const list = known ? [known] : CANDIDATES[await pickDevice()]
+          out[model] = false
+          for (const d of list) {
+            if (await ModelRegistry.is_cached(model, { dtype: d }).catch(() => false)) {
+              out[model] = true
+              found[model] = d
+              break
+            }
+          }
         }
-        post({ type: 'cached', id: m.id, cached: out })
+        post({ type: 'cached', id: m.id, cached: out, dtypes: found })
         break
       }
       case 'size':

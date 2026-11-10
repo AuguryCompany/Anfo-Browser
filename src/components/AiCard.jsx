@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useStore, navigate } from '../store'
 import { ask, LOCAL_SYSTEM } from '../ai'
-import { askLocal, modelName } from '../features/local-ai'
+import { askLocal, modelName, crashedModel, clearCrash } from '../features/local-ai'
 
 const TIMEOUT_MS = 45000
 const LOCAL_IDLE_MS = 120000 // yerel model: ilk yükleme uzun sürebilir; her yeni parçada süre yenilenir
@@ -53,6 +53,11 @@ export default function AiCard({ prompt, localPrompt, sources = [], label = 'AI 
     setText('')
     if (!model) {
       setError('Ayarlar › AI modu bölümünden bir model indir.')
+      return
+    }
+    if (crashedModel() === model) {
+      setWarm(false)
+      setError(`${modelName(model)} son kullanımda bu cihazın belleğini aştı ve uygulama kapandı. Daha küçük bir model seç ya da yeniden dene.`)
       return
     }
     const ac = new AbortController()
@@ -145,7 +150,7 @@ export default function AiCard({ prompt, localPrompt, sources = [], label = 'AI 
       {error ? (
         <>
           <p className="ai-text muted">{error}</p>
-          <button className="link" onClick={() => setAttempt((v) => v + 1)}>
+          <button className="link" onClick={() => (clearCrash(), setAttempt((v) => v + 1))}>
             Yeniden dene
           </button>
         </>

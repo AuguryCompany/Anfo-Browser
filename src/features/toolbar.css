@@ -54,9 +54,12 @@
 .tb2-ph { white-space: nowrap; }
 
 .tb2-input {
-  flex: 1; min-width: 0; height: 100%;
+  flex: 1; min-width: 0; height: 100%; padding: 0; margin: 0;
+  appearance: none; -webkit-appearance: none; border: 0; border-radius: 0; box-shadow: none;
   background: none; color: var(--text); font: inherit; font-size: 0.85rem; outline: none;
 }
+/* tarayıcının varsayılan çerçevesi ve genel odak halkası burada istenmez: hap zaten :focus-within ile belirginleşir */
+.tb2-url .tb2-input:focus, .tb2-url .tb2-input:focus-visible { outline: none; box-shadow: none; }
 
 .tb2-tag {
   flex: none; font-style: normal; font-size: 0.68rem; font-weight: 600; line-height: 1;
