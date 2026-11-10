@@ -106,6 +106,9 @@ export default function App() {
   const wide = useWide()
   const query = queryOf(tab.url)
   const Page = PAGES[ui]
+  // Tablet/PC'de araç çubuğu açıkken bir sitedeyken ada gereksizdir (geri, ileri, adres, menü üstte): gizlenir,
+  // sayfa ekranın altına kadar uzanır. Ana sayfada, aramada, panellerde ve tam ekranda ada kalır.
+  const noIsland = wide && toolbar && !full && isWeb(tab.url) && !tab.reader && !Page && ui !== 'arc' && ui !== 'alan'
 
   // Özelleştirmeler tek noktadan CSS değişkenlerine yazılır; bileşenler yeniden çizilmez.
   useEffect(() => {
@@ -184,7 +187,7 @@ export default function App() {
   }, [])
 
   return (
-    <div className="app" data-dock={dock} data-ui={ui || undefined} data-full={full || undefined} data-native={isNative}>
+    <div className="app" data-dock={dock} data-ui={ui || undefined} data-full={full || undefined} data-noisland={noIsland || undefined} data-native={isNative}>
       <section className="stage">
         <WebPane />
         {!tab.url && <Home />}
@@ -205,7 +208,7 @@ export default function App() {
         {!full && (toolbar || tabCount > 1) && <TabStrip />}
         {!full && <Toolbar />}
       </section>
-      <Island tab={tab} ui={ui} />
+      {!noIsland && <Island tab={tab} ui={ui} />}
       {ui === 'alan' && <Alan key={tab.id} />}
       {ui === 'find' && <FindBar tabId={tab.id} onClose={() => setUi(null)} />}
     </div>

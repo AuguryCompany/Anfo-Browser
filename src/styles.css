@@ -66,6 +66,7 @@ h1, h2, h3, p, ul { margin: 0; padding: 0; list-style: none; font-weight: inheri
 }
 .app[data-dock='top'] { --dock: calc(var(--row) + 1.2rem); }
 .app[data-full] { --dock: 0.9rem; }
+.app[data-noisland] { --dock: env(safe-area-inset-bottom, 0px); }
 .stage {
   position: relative; height: 100%; overflow: hidden;
   background: var(--bg);
