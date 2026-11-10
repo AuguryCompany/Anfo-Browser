@@ -62,17 +62,18 @@ export const pagePrompt = (doc) => {
 
 // ---- cihazda çalışan küçük modeller için (bkz. features/local-ai.js) ----
 // Küçük modellerin bağlamı ve hızı sınırlı: daha az kaynak, kısa metin, kısa yönerge.
-export const LOCAL_SYSTEM = `Bir tarayıcının arama özeti yardımcısısın. Türkçe, kısa ve doğrudan yaz.
-Yalnızca verilen kaynaklara dayan, uydurma. Düz metin yaz, en fazla iki kısa paragraf.`
+// Küçük modeller için: kaynaklar önce, soru ve yönerge en sonda (küçük modeller son satıra en çok uyar).
+export const LOCAL_SYSTEM = `Sen yardımsever bir asistansın. Her zaman Türkçe yanıt verirsin.
+Yalnızca sana verilen bilgileri kullanırsın; bilgilerde olmayan bir şey uydurmazsın.`
 
 const LOCAL_SNIPPET = 300
 const LOCAL_PAGE_CHARS = 4000
 
 export const overviewPromptLocal = (q, results) =>
-  `Soru: ${q}\n\nKaynaklar:\n${results
+  `Bilgiler:\n${results
     .slice(0, 5)
-    .map((r, i) => `[${i + 1}] ${r.title}\n${(r.snippet || '').slice(0, LOCAL_SNIPPET)}`)
-    .join('\n\n')}\n\nSoruyu bu kaynaklara göre kısaca yanıtla. Bilgiyi aldığın kaynağı cümle sonunda [1] biçiminde belirt.`
+    .map((r, i) => `[${i + 1}] ${r.title}: ${(r.snippet || '').slice(0, LOCAL_SNIPPET)}`)
+    .join('\n')}\n\nSoru: ${q}\n\nYukarıdaki bilgilere dayanarak soruyu Türkçe olarak 2-3 cümleyle yanıtla. Her cümlenin sonuna dayandığın bilginin numarasını [1] gibi yaz.`
 
 export const pagePromptLocal = (doc) => {
   const body = doc.blocks

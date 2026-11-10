@@ -47,6 +47,7 @@ async function create(model, preferred, onProgress) {
         return { p, dtype }
       } catch (e) {
         last = e
+        console.warn(`[anfo-llm] ${model} ${dev}/${dtype} açılamadı: ${e?.message || e}`)
         // Ağ hatasında başka tür denemenin anlamı yok.
         if (/failed to fetch|network|load resource/i.test(String(e?.message))) throw e
         await ModelRegistry.clear_cache(model, { dtype }).catch(() => {})
