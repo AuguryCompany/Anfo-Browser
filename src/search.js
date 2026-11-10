@@ -71,10 +71,66 @@ async function ddgLite(q) {
     .filter(Boolean)
 }
 
+// Bing bazen sonucu kendi yönlendirme adresiyle verir (…/ck/a?…&u=a1<base64>); asıl adres çözülür.
+function bingHref(href) {
+  if (!href) return null
+  const m = href.match(/[?&]u=a1([^&]+)/)
+  if (m) {
+    try {
+      href = atob(m[1].replace(/-/g, '+').replace(/_/g, '/'))
+    } catch {
+      return null
+    }
+  }
+  return /^https?:/.test(href) && !/^https?:\/\/(www\.)?bing\.com\//.test(href) ? href : null
+}
+
+async function bing(q) {
+  const r = await nativeGet('https://www.bing.com/search', { q, setlang: 'tr', cc: 'TR' })
+  if (r.status !== 200) return []
+  return [...parse(r.data).querySelectorAll('li.b_algo')]
+    .map((el) => {
+      const a = el.querySelector('h2 a')
+      const url = bingHref(a?.getAttribute('href'))
+      return url && { title: a.textContent.trim(), url, snippet: el.querySelector('.b_caption p, p.b_lineclamp2, p')?.textContent.trim() || '' }
+    })
+    .filter(Boolean)
+}
+
+async function mojeek(q) {
+  const r = await nativeGet('https://www.mojeek.com/search', { q })
+  if (r.status !== 200) return []
+  return [...parse(r.data).querySelectorAll('ul.results-standard > li')]
+    .map((el) => {
+      const a = el.querySelector('a.title')
+      const href = a?.getAttribute('href')
+      return /^https?:/.test(href || '') && { title: a.textContent.trim(), url: href, snippet: el.querySelector('p.s')?.textContent.trim() || '' }
+    })
+    .filter(Boolean)
+}
+
+// Önce DuckDuckGo; boş dönerse (bot doğrulaması, engel, ağ hatası) sırayla yedek kaynaklar. Sorgu yedeklere
+// yalnızca birincisi sonuç vermediğinde gönderilir.
 async function web(q) {
   const a = await ddgHtml(q).catch(() => [])
-  return a.length ? a : ddgLite(q).catch(() => [])
+  if (a.length) return a
+  const rest = [ddgLite, bing, mojeek].map((f) => f(q).catch(() => []))
+  for (const p of rest) {
+    const r = await p
+    if (r.length) return r
+  }
+  return []
 }
+
+// Vikipedi tüm kelimeleri birden arar; uzun ya da "1.yazili" gibi sorgularda hiçbir şey bulamaz.
+// Sonuç yoksa sorgu sadeleştirilir: sayılar ve kısa kelimeler atılır, ilk üç anlamlı kelime kalır.
+export const relax = (q) =>
+  q
+    .toLocaleLowerCase('tr')
+    .split(/[^\p{L}]+/u)
+    .filter((w) => w.length > 2)
+    .slice(0, 3)
+    .join(' ')
 
 const norm = (s) => s.toLocaleLowerCase('tr').replace(/[^\p{L}\p{N}]+/gu, ' ').trim()
 
@@ -101,6 +157,10 @@ async function searchFresh(q, signal) {
   let pedia = tr.value || []
   // Türkçe sonuç azsa (ve web sonucu yoksa) İngilizce Vikipedi ile tamamla.
   if (pedia.length < 4 && !found.length) pedia = [...pedia, ...(await wiki(q, 'en', signal).catch(() => []))]
+  if (!pedia.length && !found.length) {
+    const r = relax(q)
+    if (r && r !== norm(q)) pedia = await wiki(r, 'tr', signal).catch(() => [])
+  }
   if (signal.aborted) throw new DOMException('aborted', 'AbortError')
   if (!pedia.length && !found.length && tr.status === 'rejected') throw tr.reason
 
